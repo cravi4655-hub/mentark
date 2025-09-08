@@ -6,21 +6,20 @@ import { useState } from 'react'
 import { Send, MessageCircle, Plus, Target, Calendar, CheckCircle, Brain, Zap, ArrowRight, User, Settings, Heart, DollarSign, Globe, Users } from 'lucide-react'
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<any[]>([
     {
       id: 1,
-
-
       text: "Hello! I'm Mentark. What Ark would you like to start today?",
-      sender: 'ai'
+      sender: 'ai',
+      personality: 'friend',
+      modelsUsed: []
     }
   ])
   const [inputMessage, setInputMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
 
   const [personality, setPersonality] = useState('friend')
-  const [conversationHistory, setConversationHistory] = useState([])
-  
+  const [conversationHistory, setConversationHistory] = useState<any[]>([])  
   // Tab management
   const [activeTab, setActiveTab] = useState('chat') // 'chat', 'personalize', 'arks'
   
@@ -598,7 +597,7 @@ export default function ChatPage() {
                               {message.personality || 'Mentark'}
                             </span>
                             <div className="flex items-center space-x-1">
-                              {message.modelsUsed?.map((model, index) => (
+                              {message.modelsUsed?.map((model: any, index: number) => (
                                 <div key={index} className="flex items-center space-x-1">
                                   {getModelIcon(model)}
                                 </div>

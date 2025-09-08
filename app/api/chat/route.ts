@@ -2,29 +2,51 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== CHAT API CALLED ===')
-    const { message, personality = 'friend', conversationHistory = [] } = await request.json()
-    console.log('Chat data received:', { message, personality, historyLength: conversationHistory.length })
+    const { message, conversationHistory = [], category, timeframe, isCreatingArk } = await request.json()
     
-    // Analyze question type and mood
-    const questionAnalysis = analyzeQuestion(message)
-    console.log('Question analysis:', questionAnalysis)
+    // Get user data from localStorage (passed from frontend)
+    const psychologyProfile = typeof window !== 'undefined' ? 
+      JSON.parse(localStorage.getItem('psychologyProfile') || '{}') : {}
+    const mentorName = typeof window !== 'undefined' ? 
+      localStorage.getItem('mentorName') || 'Mentark' : 'Mentark'
+    const personalProfile = typeof window !== 'undefined' ? 
+      JSON.parse(localStorage.getItem('personalProfile') || '{}') : {}
     
-    // Choose which model(s) to use
-    const selectedModels = selectModels(questionAnalysis)
-    console.log('Selected models:', selectedModels)
+    if (isCreatingArk && category) {
+      const analysis = analyzeGoalFromConversation(conversationHistory, category, timeframe)
+      
+      if (analysis.isComplete) {
+        // Extract goal data and create roadmap immediately
+        const goalData = extractGoalData(conversationHistory, conversationHistory[conversationHistory.length - 1]?.text || '', category, timeframe)
+        
+        return NextResponse.json({
+          response: `Excellent! I have everything I need to create your personalized ${category} roadmap. Let me generate your detailed learning plan now...`,
+          chatCompleted: true,
+          goalData: goalData
+        })
+      } else {
+        // Ask only for missing information
+        const followUp = generateFollowUpQuestion(analysis.missingInfo, category, conversationHistory.map((m: any) => m.text).join(' '))
+        
+        return NextResponse.json({
+          response: followUp,
+          chatCompleted: false
+        })
+      }
+    }
     
-    // Get responses from selected models
-    const responses = await getModelResponses(message, selectedModels, personality, conversationHistory)
+    // Regular chat logic
+    const analysis = analyzeQuestion(message)
+    const models = selectModels(analysis)
+    const responses = await getModelResponses(message, models, 'friend', conversationHistory)
+    const combinedResponse = combineResponses(responses, analysis)
     
-    // Combine responses intelligently
-    const finalResponse = combineResponses(responses, questionAnalysis)
-    
-    console.log('Final response generated')
     return NextResponse.json({ 
-      response: finalResponse,
-      modelsUsed: selectedModels,
-      personality: personality
+      response: combinedResponse,
+      modelsUsed: models,
+      personality: 'friend',
+      context: 'general',
+      chatCompleted: false
     })
   } catch (error) {
     console.error('Chat API error:', error)
@@ -183,4 +205,35 @@ function combineResponses(responses: any[], analysis: any) {
   
   // Combine multiple responses intelligently
   return responses.map(r => r.response).join(' ')
+}
+
+// Missing functions for Ark creation
+function analyzeGoalFromConversation(conversationHistory: any[], category: string, timeframe: string) {
+  // Simple analysis - check if we have enough information
+  const hasGoal = conversationHistory.some(msg => msg.text && msg.text.length > 10)
+  const hasDetails = conversationHistory.length >= 2
+  
+  return {
+    isComplete: hasGoal && hasDetails,
+    missingInfo: hasGoal ? [] : ['goal details']
+  }
+}
+
+function extractGoalData(conversationHistory: any[], currentMessage: string, category: string, timeframe: string) {
+  const goalText = conversationHistory.find(msg => msg.text && msg.text.length > 10)?.text || currentMessage
+  
+  return {
+    goal: goalText,
+    category: category,
+    timeframe: timeframe,
+    description: `Personalized ${category} roadmap for: ${goalText}`
+  }
+}
+
+function generateFollowUpQuestion(missingInfo: string[], category: string, conversationText: string) {
+  if (missingInfo.includes('goal details')) {
+    return `I'd love to help you create your ${category} roadmap! Can you tell me more about your specific goal? What exactly do you want to achieve?`
+  }
+  
+  return `Tell me more about your ${category} goals so I can create the perfect roadmap for you.`
 }

@@ -15,7 +15,7 @@ export default function ArkCreationPage() {
   // New states for AI follow-up questions
   const [aiQuestions, setAiQuestions] = useState<{id: string, question: string}[]>([])
   const [currentAiQuestion, setCurrentAiQuestion] = useState(0)
-  const [aiQuestionResponses, setAiQuestionResponses] = useState({})
+  const [aiQuestionResponses, setAiQuestionResponses] = useState<Record<string, string>>({})
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -237,7 +237,7 @@ export default function ArkCreationPage() {
 
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {(templates as any)[selectedGoalType]?.map((template: any) => (
+        {(templates as any)[selectedGoalType]?.map((template: any) => (
             <button
               key={template.id}
               onClick={() => {
@@ -624,8 +624,8 @@ export default function ArkCreationPage() {
           ]
         }
         
-        return steps[goalType] || steps.personal
-      }
+        return (steps as any)[goalType] || steps.personal
+    }
 
       const loadingSteps = getLoadingSteps(selectedGoalType)
       const goalTypeName = goalTypes.find(g => g.id === selectedGoalType)?.name || 'Personal'
@@ -645,7 +645,7 @@ export default function ArkCreationPage() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700">
               <div className="space-y-6">
-                {loadingSteps.map((step, index) => (
+                {loadingSteps.map((step: any, index: number) => (
                   <div key={index} className="flex items-center space-x-4 p-4 bg-gray-700/30 rounded-xl">
                     <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-gray-900 font-bold text-sm">
                       {index + 1}
