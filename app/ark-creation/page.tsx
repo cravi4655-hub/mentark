@@ -1,399 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowRight, ArrowLeft, Target, Calendar, CheckCircle, Star, Zap, Brain, Heart, DollarSign, BookOpen, Users, Activity } from 'lucide-react'
 
 export default function ArkCreationPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedGoalType, setSelectedGoalType] = useState('')
   const [selectedTimeframe, setSelectedTimeframe] = useState('')
+  const [arkDescription, setArkDescription] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [milestones, setMilestones] = useState([])
+  const [currentMilestone, setCurrentMilestone] = useState(0)
   
-  // Goal factors
-  const [goalUrgency, setGoalUrgency] = useState('medium')
-  const [goalPriority, setGoalPriority] = useState('high')
-  const [goalComplexity, setGoalComplexity] = useState('medium')
-  const [goalMotivation, setGoalMotivation] = useState('personal')
-
-  // AI Chat states
-  const [aiChatMode, setAiChatMode] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [chatMessages, setChatMessages] = useState<Message[]>([])
-  const [chatInput, setChatInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [chatCompleted, setChatCompleted] = useState(false)
-  const [goalData, setGoalData] = useState<any>(null)
-  const [creatingArk, setCreatingArk] = useState(false)
-
-  // Psychology profile state
-  const [psychologyProfile, setPsychologyProfile] = useState<any>(null)
-
-  // Message interface
-  interface Message {
-    id: number
-    text: string
-    sender: 'user' | 'ai'
-    timestamp: Date
-  }
-
-  // Load psychology profile on component mount
-  useState(() => {
-    const profile = localStorage.getItem('psychologyProfile')
-    if (profile) {
-      setPsychologyProfile(JSON.parse(profile))
-    }
-  }, [])
-
-  // Get personalized templates based on psychology profile
-  const getPersonalizedTemplates = () => {
-    if (!psychologyProfile) return templates[selectedGoalType] || []
-
-    const baseTemplates = templates[selectedGoalType] || []
-    const profile = psychologyProfile.profile || {}
-
-    return baseTemplates.map(template => ({
-      ...template,
-      matchReason: getMatchReason(template, profile)
-    }))
-  }
-
-  const getMatchReason = (template: any, profile: any) => {
-    const reasons = []
-    
-    if (profile.learningStyle === 'visual' && template.difficulty === 'Easy') {
-      reasons.push('Perfect for visual learners')
-    }
-    if (profile.motivationType === 'intrinsic' && template.difficulty === 'Hard') {
-      reasons.push('Matches your intrinsic motivation')
-    }
-    if (profile.riskTolerance === 'conservative' && template.difficulty === 'Easy') {
-      reasons.push('Aligns with your conservative approach')
-    }
-    if (profile.riskTolerance === 'aggressive' && template.difficulty === 'Hard') {
-      reasons.push('Challenges your ambitious nature')
-    }
-    
-    return reasons.length > 0 ? reasons.join(', ') : 'Recommended for you'
-  }
-
-  // Initialize category chat
-  const initializeCategoryChat = (category: string) => {
-    const categoryExperts = {
-      career: {
-        name: "Career Coach AI",
-        greeting: "Hi! I'm your Career Coach AI. I specialize in helping people advance their careers, switch jobs, develop skills, and achieve professional goals. What career goal would you like to work on?",
-        expertise: "career development, job searching, skill building, professional growth"
-      },
-      finance: {
-        name: "Finance Expert AI", 
-        greeting: "Hello! I'm your Finance Expert AI. I help people with budgeting, investing, debt management, financial planning, and wealth building. What financial goal can I help you achieve?",
-        expertise: "financial planning, investing, budgeting, debt management"
-      },
-      health: {
-        name: "Health & Wellness AI",
-        greeting: "Hey there! I'm your Health & Wellness AI. I specialize in fitness, nutrition, mental health, and overall wellness. What health goal would you like to focus on?",
-        expertise: "fitness, nutrition, mental health, wellness"
-      },
-      personal: {
-        name: "Personal Development AI",
-        greeting: "Hi! I'm your Personal Development AI. I help with self-improvement, habit building, productivity, and personal growth. What personal goal are you working towards?",
-        expertise: "personal growth, habit building, productivity, self-improvement"
-      },
-      relationships: {
-        name: "Relationships AI",
-        greeting: "Hello! I'm your Relationships AI. I specialize in communication, dating, family dynamics, and building meaningful connections. What relationship goal can I help you with?",
-        expertise: "communication, dating, family, social skills"
-      },
-      learning: {
-        name: "Learning Specialist AI",
-        greeting: "Hey! I'm your Learning Specialist AI. I help with skill acquisition, education planning, and knowledge development. What would you like to learn?",
-        expertise: "skill development, education, knowledge acquisition"
-      },
-      custom: {
-        name: "Mentark AI",
-        greeting: "Hi! I'm Mentark, your personal AI mentor. I can help you with any goal across all areas of life. What would you like to achieve?",
-        expertise: "comprehensive goal setting and achievement"
-      }
-    }
-
-    const expert = categoryExperts[category as keyof typeof categoryExperts]
-    
-    setChatMessages([{
-      id: 1,
-      text: expert.greeting,
-      sender: 'ai',
-      timestamp: new Date()
-    }])
-  }
-
-  // Handle sending messages
-  const handleSendMessage = async () => {
-    if (!chatInput.trim() || isTyping) return
-
-    const userMessage: Message = {
-      id: Date.now(),
-      text: chatInput,
-      sender: 'user',
-      timestamp: new Date()
-    }
-
-    setChatMessages(prev => [...prev, userMessage])
-    setChatInput('')
-    setIsTyping(true)
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: chatInput,
-          conversationHistory: chatMessages,
-          category: selectedCategory,
-          timeframe: selectedTimeframe,
-          isCreatingArk: true,
-          psychologyProfile: psychologyProfile,
-          personalProfile: JSON.parse(localStorage.getItem('personalProfile') || '{}')
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        
-        const aiMessage: Message = {
-          id: Date.now() + 1,
-          text: data.response,
-          sender: 'ai',
-          timestamp: new Date()
-        }
-
-        setChatMessages(prev => [...prev, aiMessage])
-
-        // Check if chat is completed
-        if (data.chatCompleted) {
-          setChatCompleted(true)
-          setGoalData(data.goalData)
-        }
-      } else {
-        throw new Error('Chat failed')
-      }
-    } catch (error) {
-      console.error('Chat error:', error)
-      const errorMessage: Message = {
-        id: Date.now() + 1,
-        text: "Sorry, I'm having trouble right now. Please try again.",
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setChatMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsTyping(false)
-    }
-  }
-
-  // Handle creating Ark from chat
-  const handleCreateArkFromChat = async () => {
-    if (!goalData) return
-
-    try {
-      setCreatingArk(true)
-      
-      // Load all context data
-      const contextualIntelligence = localStorage.getItem('contextualIntelligence')
-      const personalProfile = localStorage.getItem('personalProfile')
-      const homepageData = localStorage.getItem('homepageData')
-      
-      const response = await fetch('/api/roadmap/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-psychology-profile': JSON.stringify(psychologyProfile || {}),
-          'x-contextual-intelligence': contextualIntelligence || '{}',
-          'x-homepage-data': homepageData || '{}'
-        },
-        body: JSON.stringify({
-          goal: goalData.description,
-          goalType: goalData.type,
-          timeframe: goalData.timeframe || 'medium',
-          personalProfile: personalProfile ? JSON.parse(personalProfile) : {},
-          chatContext: chatMessages,
-          psychologyProfile: psychologyProfile || {},
-          contextualIntelligence: contextualIntelligence ? JSON.parse(contextualIntelligence) : {},
-          homepageData: homepageData ? JSON.parse(homepageData) : {}
-        })
-      })
-
-      if (response.ok) {
-        const roadmap = await response.json()
-        
-        const newArk = {
-          id: Date.now(),
-          name: goalData.name,
-          type: goalData.type,
-          description: goalData.description,
-          roadmap: roadmap,
-          progress: 0,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          nextMilestone: roadmap.phases?.[0]?.milestones?.[0]?.title || 'Start your journey',
-          chatContext: chatMessages,
-          psychologyProfile: psychologyProfile || {},
-          contextualIntelligence: contextualIntelligence ? JSON.parse(contextualIntelligence) : {},
-          homepageData: homepageData ? JSON.parse(homepageData) : {},
-          // Add goal factors
-          urgency: goalUrgency,
-          priority: goalPriority,
-          complexity: goalComplexity,
-          motivation: goalMotivation,
-          timeframe: selectedTimeframe
-        }
-
-        // Save to localStorage
-        const existingArks = JSON.parse(localStorage.getItem('activeArks') || '[]')
-        const updatedArks = [...existingArks, newArk]
-        localStorage.setItem('activeArks', JSON.stringify(updatedArks))
-
-        // Redirect to roadmap
-        window.location.href = `/roadmap/${newArk.id}`
-      } else {
-        throw new Error('Failed to generate roadmap')
-      }
-    } catch (error) {
-      console.error('Ark creation error:', error)
-      alert('Failed to create Ark. Please try again.')
-    } finally {
-      setCreatingArk(false)
-    }
-  }
-
-  // Render AI Chat
-  const renderAIChat = () => {
-    const userMessageCount = chatMessages.filter(m => m.sender === 'user').length
-    const maxQuestions = selectedTimeframe === 'short' ? 4 : selectedTimeframe === 'medium' ? 6 : 8
-    
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">AI Expert Chat</h2>
-          <p className="text-gray-300 text-lg">
-            Let our AI expert guide you through creating your perfect {selectedTimeframe}-term {selectedCategory} Ark
-          </p>
-          
-          {/* Smart Progress Bar */}
-          {userMessageCount > 0 && (
-            <div className="mt-4 max-w-md mx-auto">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
-                <span>Progress</span>
-                <span>{Math.min(userMessageCount, maxQuestions)}/{maxQuestions}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(Math.min(userMessageCount, maxQuestions) / maxQuestions) * 100}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {selectedTimeframe === 'short' ? 'Quick questions for short-term goals' : 
-                 selectedTimeframe === 'medium' ? 'Detailed questions for mid-term goals' : 
-                 'Comprehensive questions for long-term goals'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Chat Interface */}
-        <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700 h-96 flex flex-col">
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-            {chatMessages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900'
-                      : 'bg-gray-700 text-white'
-                  }`}
-                >
-                  <p className="text-sm">{message.text}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-gray-700 text-white px-4 py-2 rounded-2xl">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chat Input */}
-          <div className="flex space-x-4">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type your message..."
-              className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
-              disabled={isTyping}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!chatInput.trim() || isTyping}
-              className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {chatCompleted && (
-          <div className="text-center space-y-4">
-            <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4">
-              <p className="text-green-400 font-semibold">
-                ✅ Great! I have all the information I need to create your personalized Ark.
-              </p>
-            </div>
-            <button
-              onClick={handleCreateArkFromChat}
-              disabled={creatingArk}
-              className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-400 hover:to-blue-400 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {creatingArk ? 'Creating Your Ark...' : 'Create My Ark'}
-            </button>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Render current step
-  const renderCurrentStep = () => {
-    if (aiChatMode) {
-      return renderAIChat()
-    }
-    
-    switch (currentStep) {
-      case 1: return renderStep1()
-      case 2: return renderStep2()
-      case 3: return renderStep3()
-      case 4: return renderStep4()
-      default: return renderStep1()
-    }
-  }
+  // New states for AI follow-up questions
+  const [aiQuestions, setAiQuestions] = useState([])
+  const [currentAiQuestion, setCurrentAiQuestion] = useState(0)
+  const [aiQuestionResponses, setAiQuestionResponses] = useState({})
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const goalTypes = [
     { 
@@ -605,106 +229,147 @@ export default function ArkCreationPage() {
         <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30">
           <Star className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-4xl font-bold text-white mb-4">Set Goal Factors</h1>
+        <h1 className="text-4xl font-bold text-white mb-4">Choose Your Template</h1>
         <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-          Help us understand your goal better by setting these important factors.
+          Select a proven template that matches your goal, or create a custom one. Each template comes with a structured roadmap.
+        </p>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {templates[selectedGoalType]?.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => {
+                setSelectedTemplate(template.id)
+                setCurrentStep(4)
+              }}
+              className={`p-6 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                selectedTemplate === template.id
+                  ? 'border-yellow-500 bg-yellow-500/10 shadow-lg shadow-yellow-500/20'
+                  : 'border-gray-600 hover:border-yellow-400 bg-gray-800/50'
+              }`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">{template.name}</h3>
+                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  template.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
+                  template.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {template.difficulty}
+                </div>
+              </div>
+              <p className="text-gray-400 mb-4">{template.description}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Duration: {template.duration}</span>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+            </button>
+          ))}
+        </div>
+        
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => setCurrentStep(4)}
+            className="px-8 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200"
+          >
+            Create Custom Template
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderStep4 = () => (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+          <CheckCircle className="w-10 h-10 text-white" />
+        </div>
+        <h1 className="text-4xl font-bold text-white mb-4">Define Your Goal</h1>
+        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          Tell us about your goal. Be as specific as possible - our AI will ask follow-up questions to understand better.
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Urgency */}
         <div>
-          <label className="block text-white font-semibold mb-3">How urgent is this goal?</label>
-          <div className="grid grid-cols-3 gap-3">
-            {['low', 'medium', 'high'].map((level) => (
-              <button
-                key={level}
-                onClick={() => setGoalUrgency(level)}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                  goalUrgency === level
-                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                    : 'border-gray-600 text-gray-300 hover:border-yellow-400'
-                }`}
-              >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </button>
-            ))}
-          </div>
+          <label className="block text-white font-semibold mb-2">What exactly do you want to achieve?</label>
+          <textarea
+            value={arkDescription}
+            onChange={(e) => setArkDescription(e.target.value)}
+            placeholder="Describe your specific goal in detail... What does success look like? How will you know when you've achieved it?"
+            className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none h-32 resize-none"
+          />
         </div>
 
-        {/* Priority */}
-        <div>
-          <label className="block text-white font-semibold mb-3">What's your priority level?</label>
-          <div className="grid grid-cols-3 gap-3">
-            {['low', 'medium', 'high'].map((level) => (
-              <button
-                key={level}
-                onClick={() => setGoalPriority(level)}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                  goalPriority === level
-                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                    : 'border-gray-600 text-gray-300 hover:border-yellow-400'
-                }`}
-              >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Complexity */}
-        <div>
-          <label className="block text-white font-semibold mb-3">How complex is this goal?</label>
-          <div className="grid grid-cols-3 gap-3">
-            {['low', 'medium', 'high'].map((level) => (
-              <button
-                key={level}
-                onClick={() => setGoalComplexity(level)}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                  goalComplexity === level
-                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                    : 'border-gray-600 text-gray-300 hover:border-yellow-400'
-                }`}
-              >
-                {level.charAt(0).toUpperCase() + level.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Motivation */}
-        <div>
-          <label className="block text-white font-semibold mb-3">What's your main motivation?</label>
-          <div className="grid grid-cols-2 gap-3">
-            {['personal', 'professional', 'financial', 'health'].map((type) => (
-              <button
-                key={type}
-                onClick={() => setGoalMotivation(type)}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                  goalMotivation === type
-                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400'
-                    : 'border-gray-600 text-gray-300 hover:border-yellow-400'
-                }`}
-              >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </button>
-            ))}
+        <div className="bg-gray-800/50 rounded-xl p-6">
+          <h3 className="text-white font-semibold mb-3">Goal Clarity Checklist:</h3>
+          <div className="space-y-2 text-sm text-gray-300">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span>Is your goal specific and measurable?</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span>Do you have a clear deadline?</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span>Is it challenging but achievable?</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span>Does it align with your values?</span>
+            </div>
           </div>
         </div>
 
         <div className="flex space-x-4">
           <button
-            onClick={() => setCurrentStep(2)}
+            onClick={() => setCurrentStep(3)}
             className="flex-1 px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200 flex items-center justify-center space-x-2"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back</span>
           </button>
           <button
-            onClick={() => setCurrentStep(4)}
-            className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 flex items-center justify-center space-x-2"
+            onClick={async () => {
+              setIsGeneratingQuestions(true)
+              setCurrentStep(5)
+              
+              try {
+                // Generate AI follow-up questions
+                const response = await fetch('/api/ai/generate-questions', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    goalType: selectedGoalType,
+                    timeframe: selectedTimeframe,
+                    description: arkDescription,
+                    template: selectedTemplate
+                  })
+                })
+                
+                if (response.ok) {
+                  const data = await response.json()
+                  setAiQuestions(data.questions)
+                  setCurrentAiQuestion(0)
+                  setIsGeneratingQuestions(false)
+                } else {
+                  throw new Error('Failed to generate questions')
+                }
+              } catch (error) {
+                console.error('Error generating questions:', error)
+                setIsGeneratingQuestions(false)
+                setCurrentStep(4)
+              }
+            }}
+            disabled={!arkDescription.trim()}
+            className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
           >
-            <span>Next</span>
+            <span>Generate AI Questions</span>
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
@@ -712,106 +377,305 @@ export default function ArkCreationPage() {
     </div>
   )
 
-  const renderStep4 = () => {
-    const personalizedTemplates = getPersonalizedTemplates()
+  const renderStep5 = () => {
+    if (isGeneratingQuestions) {
+      return (
+        <div className="space-y-8">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
+              <Brain className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-4">AI is Analyzing Your Goal...</h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Our AI mentor is preparing personalized follow-up questions to better understand your needs.
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700">
+              <div className="flex items-center justify-center space-x-4">
+                <div className="w-8 h-8 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-white text-lg">Generating intelligent questions...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    const currentQ = aiQuestions[currentAiQuestion]
     
+    if (!currentQ) {
+      // All AI questions answered, move to loading
+      return (
+        <div className="space-y-8">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+              <CheckCircle className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-4">Perfect! Let's Create Your Ark</h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              We have all the information we need. Now let's generate your personalized roadmap.
+            </p>
+          </div>
+
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-gray-800/50 rounded-xl p-6">
+              <h3 className="text-white font-semibold mb-3">Your Goal Summary:</h3>
+              <div className="space-y-2 text-sm text-gray-300">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Goal Type:</span>
+                  <span className="text-white">{selectedGoalType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Timeframe:</span>
+                  <span className="text-white">{selectedTimeframe}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Description:</span>
+                  <span className="text-white">{arkDescription}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">AI Questions Answered:</span>
+                  <span className="text-white">{aiQuestions.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setCurrentAiQuestion(0)}
+                className="flex-1 px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200 flex items-center justify-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Review Questions</span>
+              </button>
+              <button
+                onClick={async () => {
+                  setIsGenerating(true)
+                  setCurrentStep(6)
+                  
+                  try {
+                    const response = await fetch('/api/roadmap/generate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        goalType: selectedGoalType,
+                        timeframe: selectedTimeframe,
+                        description: arkDescription,
+                        personalProfile: aiQuestionResponses,
+                        template: selectedTemplate
+                      })
+                    })
+                    
+                    if (response.ok) {
+                      const data = await response.json()
+                      const newArk = {
+                        id: Date.now().toString(),
+                        goalType: selectedGoalType,
+                        timeframe: selectedTimeframe,
+                        template: selectedTemplate,
+                        description: arkDescription,
+                        roadmap: data.roadmap,
+                        modelsUsed: data.modelsUsed,
+                        personalizationLevel: data.personalizationLevel,
+                        createdAt: new Date().toISOString()
+                      }
+                      
+                      // Save to localStorage
+                      const existingArks = JSON.parse(localStorage.getItem('activeArks') || '[]')
+                      existingArks.push(newArk)
+                      localStorage.setItem('activeArks', JSON.stringify(existingArks))
+                      
+                      // Redirect after loading
+                      setTimeout(() => {
+                        window.location.href = `/roadmap/${newArk.id}`
+                      }, 3000)
+                    } else {
+                      throw new Error('Failed to create Ark')
+                    }
+                  } catch (error) {
+                    console.error('Error creating Ark:', error)
+                    setIsGenerating(false)
+                    setCurrentStep(5)
+                  }
+                }}
+                className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 flex items-center justify-center space-x-2"
+              >
+                <span>Create My Ark</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Show current AI question
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
-            <CheckCircle className="w-10 h-10 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30">
+            <Brain className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Choose Your Template</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">AI Follow-up Questions</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Select a personalized template that matches your profile, or create a custom one with our AI expert.
+            Our AI mentor wants to understand your goal better to create the most personalized roadmap.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          {/* Personalized Templates */}
-          {psychologyProfile && (
-            <div className="mb-8">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Star className="w-6 h-6 text-yellow-400 mr-2" />
-                Personalized for You
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {personalizedTemplates.slice(0, 2).map((template) => (
-                  <button
-                    key={template.id}
-                    onClick={() => {
-                      setSelectedTemplate(template.id)
-                      setSelectedCategory(selectedGoalType)
-                      setAiChatMode(true)
-                      initializeCategoryChat(selectedGoalType)
-                      setChatInput(template.description)
-                    }}
-                    className="p-6 rounded-2xl border-2 border-yellow-500 bg-yellow-500/10 shadow-lg shadow-yellow-500/20 transition-all duration-300 transform hover:scale-105"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <h4 className="text-lg font-bold text-white">{template.name}</h4>
-                      <div className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
-                        Recommended
-                      </div>
-                    </div>
-                    <p className="text-gray-300 mb-3">{template.description}</p>
-                    <p className="text-xs text-yellow-400">{template.matchReason}</p>
-                  </button>
-                ))}
-              </div>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="bg-gray-800/50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-gray-400">Question {currentAiQuestion + 1} of {aiQuestions.length}</span>
+              <span className="text-sm text-yellow-400">{Math.round(((currentAiQuestion + 1) / aiQuestions.length) * 100)}%</span>
             </div>
-          )}
-
-          {/* Default Templates */}
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-white mb-4">Popular Templates</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {templates[selectedGoalType]?.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => {
-                    setSelectedTemplate(template.id)
-                    setSelectedCategory(selectedGoalType)
-                    setAiChatMode(true)
-                    initializeCategoryChat(selectedGoalType)
-                    setChatInput(template.description)
-                  }}
-                  className="p-6 rounded-2xl border-2 border-gray-600 hover:border-yellow-400 bg-gray-800/50 transition-all duration-300 transform hover:scale-105"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <h4 className="text-lg font-bold text-white">{template.name}</h4>
-                    <div className={`px-2 py-1 text-xs rounded-full ${
-                      template.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
-                      template.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-red-500/20 text-red-400'
-                    }`}>
-                      {template.difficulty}
-                    </div>
-                  </div>
-                  <p className="text-gray-300 mb-3">{template.description}</p>
-                  <p className="text-xs text-gray-500">Duration: {template.duration}</p>
-                </button>
-              ))}
+            <div className="w-full bg-gray-700 rounded-full h-2 mb-6">
+              <div 
+                className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${((currentAiQuestion + 1) / aiQuestions.length) * 100}%` }}
+              ></div>
+            </div>
+            
+            <h2 className="text-xl font-bold text-white mb-6">{currentQ.question}</h2>
+            
+            <div className="space-y-4">
+              <textarea
+                placeholder="Your answer..."
+                className="w-full p-4 bg-gray-700 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none h-24 resize-none"
+                onChange={(e) => setAiQuestionResponses(prev => ({ ...prev, [currentQ.id]: e.target.value }))}
+                value={aiQuestionResponses[currentQ.id] || ''}
+              />
+              <button
+                onClick={() => {
+                  if (currentAiQuestion < aiQuestions.length - 1) {
+                    setCurrentAiQuestion(prev => prev + 1)
+                  } else {
+                    setCurrentAiQuestion(prev => prev + 1) // Move to summary
+                  }
+                }}
+                disabled={!aiQuestionResponses[currentQ.id]}
+                className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {currentAiQuestion < aiQuestions.length - 1 ? 'Next Question' : 'Finish Questions'}
+              </button>
             </div>
           </div>
 
-          {/* Custom Option */}
-          <div className="text-center">
+          <div className="flex space-x-4">
             <button
-              onClick={() => {
-                setSelectedCategory('custom')
-                setAiChatMode(true)
-                initializeCategoryChat('custom')
-              }}
-              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-purple-500/30"
+              onClick={() => currentAiQuestion > 0 ? setCurrentAiQuestion(prev => prev - 1) : setCurrentStep(4)}
+              className="flex-1 px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200 flex items-center justify-center space-x-2"
             >
-              <Brain className="w-6 h-6 inline mr-2" />
-              Chat with Mentark AI
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back</span>
             </button>
           </div>
         </div>
       </div>
     )
+  }
+
+  const renderStep6 = () => {
+    if (isGenerating) {
+      const getLoadingSteps = (goalType: string) => {
+        const steps = {
+          finance: [
+            { text: "Analyzing your financial profile...", models: ["ChatGPT", "Claude"] },
+            { text: "Researching current market rates...", models: ["Perplexity"] },
+            { text: "Creating investment strategy...", models: ["Claude"] },
+            { text: "Adding motivational support...", models: ["ChatGPT"] },
+            { text: "Finalizing your financial roadmap...", models: ["All Models"] }
+          ],
+          career: [
+            { text: "Analyzing your career profile...", models: ["ChatGPT", "Claude"] },
+            { text: "Researching job opportunities...", models: ["Perplexity"] },
+            { text: "Building career strategy...", models: ["Claude"] },
+            { text: "Adding soft skills development...", models: ["ChatGPT"] },
+            { text: "Finalizing your career roadmap...", models: ["All Models"] }
+          ],
+          health: [
+            { text: "Analyzing your health profile...", models: ["Gemini", "ChatGPT"] },
+            { text: "Researching fitness trends...", models: ["Perplexity"] },
+            { text: "Creating workout plan...", models: ["Claude"] },
+            { text: "Adding motivation strategies...", models: ["ChatGPT"] },
+            { text: "Finalizing your health roadmap...", models: ["All Models"] }
+          ],
+          personal: [
+            { text: "Analyzing your personal profile...", models: ["ChatGPT", "Gemini"] },
+            { text: "Researching self-help resources...", models: ["Perplexity"] },
+            { text: "Creating habit formation plan...", models: ["Claude"] },
+            { text: "Adding emotional support...", models: ["ChatGPT"] },
+            { text: "Finalizing your personal roadmap...", models: ["All Models"] }
+          ],
+          relationships: [
+            { text: "Analyzing your relationship profile...", models: ["ChatGPT", "Gemini"] },
+            { text: "Researching local events...", models: ["Perplexity"] },
+            { text: "Creating communication strategies...", models: ["Claude"] },
+            { text: "Adding emotional intelligence tips...", models: ["ChatGPT"] },
+            { text: "Finalizing your relationship roadmap...", models: ["All Models"] }
+          ],
+          learning: [
+            { text: "Analyzing your learning profile...", models: ["ChatGPT", "Gemini"] },
+            { text: "Researching course options...", models: ["Perplexity"] },
+            { text: "Creating study plan...", models: ["Claude"] },
+            { text: "Adding motivation techniques...", models: ["ChatGPT"] },
+            { text: "Finalizing your learning roadmap...", models: ["All Models"] }
+          ]
+        }
+        
+        return steps[goalType] || steps.personal
+      }
+
+      const loadingSteps = getLoadingSteps(selectedGoalType)
+      const goalTypeName = goalTypes.find(g => g.id === selectedGoalType)?.name || 'Personal'
+
+      return (
+        <div className="space-y-8">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/30">
+              <Zap className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-4">Creating Your {goalTypeName} Ark...</h1>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Our AI experts are analyzing your profile and building your personalized roadmap.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700">
+              <div className="space-y-6">
+                {loadingSteps.map((step, index) => (
+                  <div key={index} className="flex items-center space-x-4 p-4 bg-gray-700/30 rounded-xl">
+                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-gray-900 font-bold text-sm">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-semibold">{step.text}</p>
+                      <p className="text-sm text-gray-400">{step.models.join(', ')}</p>
+                    </div>
+                    <div className="w-6 h-6 border-2 border-yellow-500 rounded-full animate-spin">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full m-1"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-8 text-center">
+                <div className="inline-flex items-center space-x-2 text-yellow-400">
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+                <p className="text-gray-400 text-sm mt-2">This usually takes 30-60 seconds...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -849,13 +713,13 @@ export default function ArkCreationPage() {
       <div className="relative z-10 px-6 py-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Step {currentStep} of 4</span>
-            <span className="text-sm text-gray-400">{Math.round((currentStep / 4) * 100)}% Complete</span>
+            <span className="text-sm text-gray-400">Step {currentStep} of 6</span>
+            <span className="text-sm text-gray-400">{Math.round((currentStep / 6) * 100)}% Complete</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
+              style={{ width: `${(currentStep / 6) * 100}%` }}
             ></div>
           </div>
         </div>
@@ -864,7 +728,12 @@ export default function ArkCreationPage() {
       {/* Main Content */}
       <section className="relative px-6 py-12">
         <div className="max-w-7xl mx-auto">
-          {renderCurrentStep()}
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
+          {currentStep === 5 && renderStep5()}
+          {currentStep === 6 && renderStep6()}
         </div>
       </section>
     </div>
