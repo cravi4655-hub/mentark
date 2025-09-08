@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ArrowRight, ArrowLeft, Target, Calendar, CheckCircle, Star, Zap, Brain, Heart, DollarSign, BookOpen, Users, Activity } from 'lucide-react'
 
 export default function ArkCreationPage() {
@@ -237,7 +237,7 @@ export default function ArkCreationPage() {
 
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {templates[selectedGoalType]?.map((template) => (
+          {templates[selectedGoalType as keyof typeof templates]?.map((template) => (
             <button
               key={template.id}
               onClick={() => {
