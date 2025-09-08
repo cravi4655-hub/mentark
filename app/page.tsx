@@ -1,23 +1,530 @@
-import Image from 'next/image'
-import { ArrowRight, CheckCircle, Users, Target, Brain, Calendar, Sparkles, Zap } from 'lucide-react'
+'use client'
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Innovative Background Effects */}
-      <div className="absolute inset-0">
-        {/* Animated grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:50px_50px] animate-pulse"></div>
-        {/* Floating particles */}
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-        <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-cyan-400 rounded-full animate-ping"></div>
-        <div className="absolute top-1/2 right-1/3 w-1.5 h-1.5 bg-blue-300 rounded-full animate-pulse"></div>
+import { useState } from 'react'
+import { Star, Zap, Target, Users, BookOpen, DollarSign, Activity, CheckCircle, Brain, Heart, Lightbulb, ArrowRight, Mail, MessageSquare } from 'lucide-react'
+import emailjs from '@emailjs/browser'
+
+export default function HomePage() {
+  const [email, setEmail] = useState('')
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('home')
+  const [showComingSoon, setShowComingSoon] = useState(false)
+  
+  // Contact form states
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  })
+  const [isContactSubmitted, setIsContactSubmitted] = useState(false)
+  const [isContactLoading, setIsContactLoading] = useState(false)
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+      })
+
+      if (response.ok) {
+        setIsSubmitted(true)
+        setEmail('')
+      } else {
+        throw new Error('Failed to join waitlist')
+      }
+    } catch (error) {
+      console.error('Waitlist error:', error)
+      alert('Failed to join waitlist. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) return
+
+    setIsContactLoading(true)
+    try {
+      // Send email using EmailJS
+      await emailjs.send(
+        'service_yd8nu8s',
+        'template_l7vyjiv',
+        {
+          from_name: contactForm.name,
+          from_email: contactForm.email,
+          subject: contactForm.subject || 'General Inquiry',
+          message: contactForm.message,
+        },
+        '8jzsyBLBwlUCpotE0'
+      )
+
+      setIsContactSubmitted(true)
+      setContactForm({ name: '', email: '', subject: '', message: '' })
+    } catch (error) {
+      console.error('Email error:', error)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setIsContactLoading(false)
+    }
+  }
+
+  const handleTryDemo = () => {
+    setShowComingSoon(true)
+    setTimeout(() => {
+      setShowComingSoon(false)
+    }, 3000)
+  }
+
+  const renderHomeTab = () => (
+    <div className="space-y-20">
+      {/* Hero Section */}
+      <div className="text-center">
+        <div className="mb-8">
+          <h1 className="text-6xl lg:text-8xl font-bold text-white mb-6 leading-tight">
+            Your Personal
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent"> AI Mentor</span>
+          </h1>
+          <p className="text-2xl lg:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+            The world's first AI-powered personal development platform that creates personalized roadmaps for every life goal
+          </p>
+        </div>
+
+        {/* Waitlist Form */}
+        <div className="max-w-2xl mx-auto mb-16" id="waitlist">
+          {!isSubmitted ? (
+            <form onSubmit={handleWaitlistSubmit} className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-white mb-4">Join the Waitlist</h2>
+                <p className="text-xl text-gray-300">
+                  Be the first to experience the future of personal development
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="flex-1 px-6 py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-lg"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isLoading ? 'Joining...' : 'Join Waitlist'}
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-400">
+                We'll notify you when Mentark is ready. No spam, just updates.
+              </p>
+            </form>
+          ) : (
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+                <CheckCircle className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">You're on the list!</h2>
+              <p className="text-xl text-gray-300 mb-6">
+                We'll notify you as soon as Mentark is ready to transform your life.
+              </p>
+              <button
+                onClick={() => setIsSubmitted(false)}
+                className="px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200"
+              >
+                Join Another Email
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Features Preview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <Brain className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">AI-Powered Analysis</h3>
+            <p className="text-gray-300 text-lg">
+              Advanced AI analyzes your personality, goals, and preferences to create the perfect roadmap
+            </p>
+          </div>
+
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">Personalized Roadmaps</h3>
+            <p className="text-gray-300 text-lg">
+              Get step-by-step roadmaps tailored to your unique situation and learning style
+            </p>
+          </div>
+
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
+              <Zap className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">Real-Time Guidance</h3>
+            <p className="text-gray-300 text-lg">
+              Get instant feedback, motivation, and course corrections as you progress
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Coming Soon Section - All 6 Categories */}
+      <div className="bg-gray-800/20 rounded-3xl p-12">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-white mb-6">Transform Every Area of Your Life</h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Mentark covers all aspects of personal development with AI-powered guidance tailored to your unique needs
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[
+            { 
+              icon: <DollarSign className="w-8 h-8" />, 
+              name: 'Finance', 
+              color: 'from-green-500 to-emerald-500',
+              description: 'Master money management, investing, and wealth building with personalized financial strategies'
+            },
+            { 
+              icon: <Target className="w-8 h-8" />, 
+              name: 'Career', 
+              color: 'from-blue-500 to-cyan-500',
+              description: 'Advance your professional life with AI-powered career planning and skill development'
+            },
+            { 
+              icon: <Activity className="w-8 h-8" />, 
+              name: 'Health', 
+              color: 'from-red-500 to-orange-500',
+              description: 'Achieve your fitness and wellness goals with customized health and nutrition plans'
+            },
+            { 
+              icon: <Users className="w-8 h-8" />, 
+              name: 'Relationships', 
+              color: 'from-pink-500 to-rose-500',
+              description: 'Build meaningful connections and improve communication in all your relationships'
+            },
+            { 
+              icon: <BookOpen className="w-8 h-8" />, 
+              name: 'Learning', 
+              color: 'from-indigo-500 to-blue-500',
+              description: 'Master new skills and knowledge with personalized learning paths and resources'
+            },
+            { 
+              icon: <Star className="w-8 h-8" />, 
+              name: 'Personal', 
+              color: 'from-purple-500 to-pink-500',
+              description: 'Develop confidence, habits, and life skills for overall personal growth and fulfillment'
+            }
+          ].map((category, index) => (
+            <div key={index} className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 hover:border-yellow-400/50 transition-all duration-300 group">
+              <div className={`w-16 h-16 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-200`}>
+                <div className="text-white">{category.icon}</div>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4 text-center">{category.name}</h3>
+              <p className="text-gray-300 text-center leading-relaxed">{category.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Contact Us Section */}
+      <div className="bg-gray-800/20 rounded-3xl p-12">
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center mb-6">
+            <MessageSquare className="w-8 h-8 text-yellow-400 mr-3" />
+            <span className="text-yellow-400 font-semibold text-lg">Get in Touch</span>
+          </div>
+          <h2 className="text-4xl font-bold text-white mb-6">Have Questions?</h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            We'd love to hear from you! Send us a message and we'll respond as soon as possible.
+          </p>
+        </div>
+
+        <div className="max-w-4xl mx-auto">
+          {!isContactSubmitted ? (
+            <form onSubmit={handleContactSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                    placeholder="Your name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  id="subject"
+                  value={contactForm.subject}
+                  onChange={(e) => setContactForm({...contactForm, subject: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                  placeholder="What's this about?"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
+                  Message *
+                </label>
+                <textarea
+                  id="message"
+                  rows={6}
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 resize-none"
+                  placeholder="Tell us what's on your mind..."
+                  required
+                />
+              </div>
+              
+              <div className="text-center">
+                <button
+                  type="submit"
+                  disabled={isContactLoading}
+                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isContactLoading ? 'Sending...' : 'Send Message'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+                <Mail className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">Message Sent!</h2>
+              <p className="text-xl text-gray-300 mb-6">
+                Thank you for reaching out. We'll get back to you within 24 hours.
+              </p>
+              <button
+                onClick={() => setIsContactSubmitted(false)}
+                className="px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200"
+              >
+                Send Another Message
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderMentarkWayTab = () => (
+    <div className="space-y-16">
+      {/* Hero Section */}
+      <div className="text-center">
+        <div className="flex items-center justify-center mb-6">
+          <Lightbulb className="w-8 h-8 text-yellow-400 mr-3" />
+          <span className="text-yellow-400 font-semibold text-lg">The Mentark Philosophy</span>
+        </div>
+        <h1 className="text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          The Mentark Way:
+          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent block">From Uncertainty to Clarity</span>
+        </h1>
+        <p className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          We believe mentorship should be accessible, adaptive, and actionable. The Mentark Way combines human psychology, AI reasoning, and structured planning to turn your goals into reality.
+        </p>
+      </div>
+
+      {/* What Makes Mentark Different */}
+      <div className="bg-gray-800/20 rounded-3xl p-12">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-white mb-6">What Makes Mentark Different?</h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Unlike generic self-help apps, Mentark creates truly personalized experiences based on your unique psychology and circumstances
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-6">
+              <Brain className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">Psychological Intelligence</h3>
+            <p className="text-gray-300 text-lg">
+              We understand your unique learning style, motivation patterns, and behavioral preferences to create truly personalized guidance.
+            </p>
+          </div>
+
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-6">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">Structured Planning</h3>
+            <p className="text-gray-300 text-lg">
+              Every goal is broken down into actionable steps, milestones, and resources that adapt to your progress and changing circumstances.
+            </p>
+          </div>
+
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-6">
+              <Zap className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4">Adaptive Learning</h3>
+            <p className="text-gray-300 text-lg">
+              Our AI learns from your interactions, successes, and challenges to continuously improve your personalized experience.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* The Process */}
+      <div className="bg-gray-800/20 rounded-3xl p-12">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-white mb-6">How It Works</h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            The Mentark Way transforms your goals into reality through a proven, personalized process
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[
+            { step: '01', title: 'Discover', description: 'Understand your personality, goals, and motivations through our AI-powered assessment', icon: <Brain className="w-8 h-8" /> },
+            { step: '02', title: 'Plan', description: 'Create a personalized roadmap with milestones, tasks, and resources tailored to you', icon: <Target className="w-8 h-8" /> },
+            { step: '03', title: 'Execute', description: 'Follow your roadmap with real-time guidance, motivation, and course corrections', icon: <Zap className="w-8 h-8" /> },
+            { step: '04', title: 'Evolve', description: 'Continuously improve and adapt your approach based on progress and new insights', icon: <Star className="w-8 h-8" /> }
+          ].map((item, index) => (
+            <div key={index} className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/30">
+                <div className="text-gray-900 font-bold text-2xl">{item.step}</div>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
+              <p className="text-gray-300 text-lg">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Why Now */}
+      <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-3xl p-12 border border-yellow-500/20">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">Why Mentark? Why Now?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="text-left">
+              <h3 className="text-2xl font-bold text-yellow-400 mb-4">The Problem</h3>
+              <ul className="text-gray-300 space-y-3">
+                <li className="flex items-start">
+                  <span className="text-red-400 mr-3">•</span>
+                  Generic self-help content that doesn't fit your personality
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-400 mr-3">•</span>
+                  Overwhelming amount of information with no clear path
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-400 mr-3">•</span>
+                  Lack of accountability and personalized guidance
+                </li>
+                <li className="flex items-start">
+                  <span className="text-red-400 mr-3">•</span>
+                  One-size-fits-all approaches that don't work
+                </li>
+              </ul>
+            </div>
+            <div className="text-left">
+              <h3 className="text-2xl font-bold text-green-400 mb-4">The Solution</h3>
+              <ul className="text-gray-300 space-y-3">
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-3">•</span>
+                  AI-powered personalization based on your psychology
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-3">•</span>
+                  Clear, step-by-step roadmaps for every goal
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-3">•</span>
+                  Real-time guidance and motivation from AI mentors
+                </li>
+                <li className="flex items-start">
+                  <span className="text-green-400 mr-3">•</span>
+                  Adaptive learning that grows with you
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="text-center">
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold text-white mb-4">Ready to Transform Your Life?</h2>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Join thousands of people who are already on their journey to achieving their goals with Mentark
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <button
+            onClick={() => setActiveTab('home')}
+            className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30"
+          >
+            Join the Waitlist
+          </button>
+          <button
+            onClick={handleTryDemo}
+            className="px-8 py-4 border-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-gray-900 font-bold rounded-xl transition-all duration-200"
+          >
+            Try Demo
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="min-h-screen bg-gray-900 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(250,204,21,0.1),transparent_50%)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1),transparent_50%)]"></div>
       
       {/* Navigation */}
-      <nav className="relative z-10 px-6 py-6 border-b border-yellow-500/20 bg-gray-900/95 backdrop-blur-md">
+      <nav className="relative z-10 px-6 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer group">
+          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => window.location.href = '/'}>
             <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-400/50 transition-all duration-300 group-hover:scale-105">
               <span className="text-gray-900 font-bold text-xl">M</span>
             </div>
@@ -25,226 +532,83 @@ export default function Home() {
               MENTARK
             </span>
           </div>
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-gray-300 hover:text-yellow-400 transition-colors font-medium">Home</a>
-            <a href="#train-model" className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/30 transition-all duration-200 font-medium px-4 py-2 rounded-lg">
-              Train Your Model
-            </a>
-            <button className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold px-6 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 hover:shadow-yellow-400/50">
-              Join Waitlist
+          
+          <div className="flex items-center space-x-6">
+            {/* Navigation Tabs */}
+            <div className="flex items-center space-x-1 bg-gray-800/50 rounded-xl p-1">
+              <button
+                onClick={() => setActiveTab('home')}
+                className={`px-4 py-2 rounded-lg transition-all duration-200 ${
+                  activeTab === 'home'
+                    ? 'bg-yellow-500 text-gray-900 font-semibold'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                Home
+              </button>
+              <button
+                onClick={() => setActiveTab('mentark-way')}
+                className={`px-4 py-2 rounded-lg transition-all duration-200 ${
+                  activeTab === 'mentark-way'
+                    ? 'bg-yellow-500 text-gray-900 font-semibold'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                The Mentark Way
+              </button>
+            </div>
+            
+            <button
+              onClick={handleTryDemo}
+              className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30"
+            >
+              Try Demo
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative px-6 py-24">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="mb-8">
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2 mb-8">
-              <Zap className="w-4 h-4 text-blue-400" />
-              <span className="text-blue-300 text-sm font-medium">AI-Powered Mentorship</span>
-            </div>
-          </div>
-          <h1 className="text-6xl md:text-8xl font-bold mb-8 leading-tight">
-            <span className="text-white drop-shadow-lg">The Mentor You Always Needed,</span><br />
-            <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-lg">
-              Now Powered by AI
-            </span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-gray-100 mb-16 max-w-4xl mx-auto leading-relaxed drop-shadow-md">
-            Mentark is your lifelong AI mentor — helping students and professionals turn uncertainty into clarity with personalized roadmaps, tasks, and guidance that grows with you.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-lg px-10 py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-400/50">
-              Join the Waitlist
-            </button>
-            <button className="text-gray-200 hover:text-blue-400 transition-colors text-lg px-10 py-4 border border-blue-500/40 rounded-xl hover:border-blue-400/60 hover:bg-blue-500/10 backdrop-blur-sm">
-              How It Works
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Train Your Model Section */}
-      <section id="train-model" className="px-6 py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-bold mb-8">
-              <span className="text-white drop-shadow-lg">Train Your Model — </span>
-              <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-lg">
-                Choose Your Path
-              </span>
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-12">
-            {/* Student Option */}
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-10 hover:border-blue-400/50 transition-all duration-300 group hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform shadow-lg shadow-green-500/30">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-6 drop-shadow-md">Study Smarter, Build Confidence</h3>
-                <p className="text-gray-200 mb-10 leading-relaxed text-lg drop-shadow-sm">
-                  From exam prep to career choices, Mentark helps you break down goals into clear study plans and actionable tasks — so you achieve more with less stress.
-                </p>
-                <button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold w-full py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30">
-                  I'm a Student <ArrowRight className="w-5 h-5 ml-2 inline" />
-                </button>
-              </div>
-            </div>
-
-            {/* Professional Option */}
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-10 hover:border-blue-400/50 transition-all duration-300 group hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/30">
-                  <Target className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-6 drop-shadow-md">Level Up Your Career</h3>
-                <p className="text-gray-200 mb-10 leading-relaxed text-lg drop-shadow-sm">
-                  Whether you're upskilling, switching roles, or driving workplace goals, Mentark structures your path with personalized roadmaps, accountability, and weekly reviews that keep you moving forward.
-                </p>
-                <button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold w-full py-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30">
-                  I'm a Professional <ArrowRight className="w-5 h-5 ml-2 inline" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="px-6 py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-bold mb-8">
-              Why <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-lg">Mentark</span> Works
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-8 text-center hover:border-blue-400/50 transition-all duration-300 hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
-                <Target className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4 drop-shadow-md">Personalized Roadmaps</h3>
-              <p className="text-gray-200 text-sm drop-shadow-sm">
-                Turn big goals into clear, achievable steps with AI-generated plans tailored to students and professionals.
-              </p>
-            </div>
-
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-8 text-center hover:border-blue-400/50 transition-all duration-300 hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
-                <Brain className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4 drop-shadow-md">Your Mentor That Remembers</h3>
-              <p className="text-gray-200 text-sm drop-shadow-sm">
-                Mentark keeps track of your progress, reflections, and challenges — like a lifelong coach who knows your journey.
-              </p>
-            </div>
-
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-8 text-center hover:border-blue-400/50 transition-all duration-300 hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4 drop-shadow-md">Action + Accountability</h3>
-              <p className="text-gray-200 text-sm drop-shadow-sm">
-                Daily nudges, streaks, and micro-tasks ensure you not only plan but also follow through.
-              </p>
-            </div>
-
-            <div className="bg-black/60 backdrop-blur-md border border-blue-500/30 rounded-2xl p-8 text-center hover:border-blue-400/50 transition-all duration-300 hover:bg-black/80 hover:shadow-lg hover:shadow-blue-500/20">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-4 drop-shadow-md">Weekly Reflection</h3>
-              <p className="text-gray-200 text-sm drop-shadow-sm">
-                Learn from your week — celebrate wins, adjust blockers, and refocus with your mentor's guidance.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="px-6 py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-bold mb-8">
-              How It <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-lg">Works</span>
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-12">
+      {/* Coming Soon Modal */}
+      {showComingSoon && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-2xl p-8 max-w-md mx-auto border border-yellow-500/20">
             <div className="text-center">
-              <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/30">
-                <span className="text-3xl font-bold text-white">1</span>
+              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Zap className="w-8 h-8 text-gray-900" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4 drop-shadow-md">Create Your Ark</h3>
-              <p className="text-gray-200 drop-shadow-sm">
-                Answer a short onboarding, define your first goal.
+              <h3 className="text-2xl font-bold text-white mb-4">Coming Soon!</h3>
+              <p className="text-gray-300 mb-6">
+                The demo is currently being prepared. Join our waitlist to be the first to experience Mentark when it launches!
               </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/30">
-                <span className="text-3xl font-bold text-white">2</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4 drop-shadow-md">Get Your Roadmap</h3>
-              <p className="text-gray-200 drop-shadow-sm">
-                AI breaks it into phases and concrete tasks.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-blue-500/30">
-                <span className="text-3xl font-bold text-white">3</span>
-              </div>
-              <h3 className="text-2xl font-bold text-white mb-4 drop-shadow-md">Grow With Your Mentor</h3>
-              <p className="text-gray-200 drop-shadow-sm">
-                Daily nudges, task tracking, and weekly reviews keep you accountable.
-              </p>
+              <button
+                onClick={() => setShowComingSoon(false)}
+                className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-bold rounded-xl transition-all duration-200"
+              >
+                Got it!
+              </button>
             </div>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Bottom CTA Section */}
-      <section className="px-6 py-24">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-5xl md:text-6xl font-bold mb-8">
-            <span className="text-white drop-shadow-lg">Your journey deserves clarity.</span><br />
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-lg">
-              Your goals deserve a mentor.
-            </span>
-          </h2>
-          
-          <p className="text-xl text-gray-200 mb-16 drop-shadow-sm">
-            Students and professionals — join the Mentark waitlist today.
-          </p>
-          
-          <button className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold text-lg px-16 py-5 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30 hover:shadow-blue-400/50">
-            Join the Waitlist
-          </button>
+      {/* Main Content */}
+      <section className="relative px-6 py-12">
+        <div className="max-w-7xl mx-auto">
+          {activeTab === 'home' ? renderHomeTab() : renderMentarkWayTab()}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-16 border-t border-blue-500/30 bg-black/80 backdrop-blur-md">
+      <footer className="relative px-6 py-12 border-t border-gray-800">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-6 cursor-pointer group">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-400/50 transition-all duration-300">
-              <span className="text-white font-bold">M</span>
+          <div className="flex items-center justify-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
+              <span className="text-gray-900 font-bold text-lg">M</span>
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent group-hover:from-blue-300 group-hover:to-cyan-200 transition-all duration-300">
-              MENTARK
-            </span>
+            <span className="text-2xl font-bold text-white">MENTARK</span>
           </div>
-          <p className="text-gray-300">
-            © 2024 Mentark. Your personal AI mentor for life.
+          <p className="text-gray-400">
+            The future of personal development is here. Join the waitlist to be the first to experience it.
           </p>
         </div>
       </footer>
