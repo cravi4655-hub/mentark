@@ -9,13 +9,13 @@ export default function ArkCreationPage() {
   const [selectedTimeframe, setSelectedTimeframe] = useState('')
   const [arkDescription, setArkDescription] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState('')
-  const [milestones, setMilestones] = useState<any[]>([])
+  const [milestones, setMilestones] = useState([])
   const [currentMilestone, setCurrentMilestone] = useState(0)
   
   // New states for AI follow-up questions
   const [aiQuestions, setAiQuestions] = useState<{id: string, question: string}[]>([])
   const [currentAiQuestion, setCurrentAiQuestion] = useState(0)
-  const [aiQuestionResponses, setAiQuestionResponses] = useState<Record<string, string>>({})
+  const [aiQuestionResponses, setAiQuestionResponses] = useState({})
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -237,7 +237,7 @@ export default function ArkCreationPage() {
 
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {templates[selectedGoalType]?.map((template) => (
+          {(templates as any)[selectedGoalType]?.map((template: any) => (
             <button
               key={template.id}
               onClick={() => {

@@ -1,23 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
+import { useState } from 'react'
 
-import { Send, MessageCircle, Plus, Target, Calendar, CheckCircle, Brain, Zap, ArrowRight, User, Settings, Heart, DollarSign, Globe, Users, BarChart3 } from 'lucide-react'
 
-// Dynamic import to avoid SSR issues
-const AssessmentWidget = dynamic(() => import('../components/AssessmentWidget'), {
-  ssr: false
-})
+import { Send, MessageCircle, Plus, Target, Calendar, CheckCircle, Brain, Zap, ArrowRight, User, Settings, Heart, DollarSign, Globe, Users } from 'lucide-react'
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([
     {
       id: 1,
+
+
       text: "Hello! I'm Mentark. What Ark would you like to start today?",
-      sender: 'ai',
-      modelsUsed: [],
-      personality: 'friend'
+      sender: 'ai'
     }
   ])
   const [inputMessage, setInputMessage] = useState('')
@@ -27,7 +22,7 @@ export default function ChatPage() {
   const [conversationHistory, setConversationHistory] = useState([])
   
   // Tab management
-  const [activeTab, setActiveTab] = useState('chat') // 'chat', 'personalize', 'arks', 'assessment'
+  const [activeTab, setActiveTab] = useState('chat') // 'chat', 'personalize', 'arks'
   
   // Personalization states
   const [personalProfile, setPersonalProfile] = useState({
@@ -67,13 +62,6 @@ export default function ChatPage() {
     biggestStrengths: ''
   })
 
-  // Psychology Profile states
-  const [psychologyProfile, setPsychologyProfile] = useState<any>(null)
-  const [mentorName, setMentorName] = useState('Mentark')
-  const [contextualIntelligence, setContextualIntelligence] = useState<any>(null)
-  const [isCreatingArk, setIsCreatingArk] = useState(false)
-  const [currentArkContext, setCurrentArkContext] = useState<any>(null)
-
   // Ark Management states
   const [activeArks, setActiveArks] = useState([
     {
@@ -83,11 +71,7 @@ export default function ChatPage() {
       progress: 65,
       status: 'active',
       createdAt: '2024-01-15',
-      nextMilestone: 'Complete skill assessment',
-      urgency: 'medium',
-      priority: 'high',
-      complexity: 'moderate',
-      motivation: 'high'
+      nextMilestone: 'Complete skill assessment'
     },
     {
       id: 2,
@@ -96,43 +80,12 @@ export default function ChatPage() {
       progress: 30,
       status: 'active',
       createdAt: '2024-02-01',
-      nextMilestone: 'Set up emergency fund',
-      urgency: 'high',
-      priority: 'top',
-      complexity: 'moderate',
-      motivation: 'passionate'
+      nextMilestone: 'Set up emergency fund'
     }
   ])
 
-  // Load personalization data on mount
-  useEffect(() => {
-    const savedProfile = localStorage.getItem('personalProfile')
-    if (savedProfile) {
-      setPersonalProfile(JSON.parse(savedProfile))
-    }
-
-    const savedPsychology = localStorage.getItem('psychologyProfile')
-    if (savedPsychology) {
-      setPsychologyProfile(JSON.parse(savedPsychology))
-    }
-
-    const savedMentor = localStorage.getItem('mentorName')
-    if (savedMentor) {
-      setMentorName(savedMentor)
-    }
-
-    const savedContext = localStorage.getItem('contextualIntelligence')
-    if (savedContext) {
-      setContextualIntelligence(JSON.parse(savedContext))
-    }
-
-    const savedArks = localStorage.getItem('activeArks')
-    if (savedArks) {
-      setActiveArks(JSON.parse(savedArks))
-    }
-  }, [])
-
   const handleSendMessage = async () => {
+
     console.log('=== FUNCTION CALLED ===')
     if (!inputMessage.trim()) {
       console.log('=== NO INPUT MESSAGE ===')
@@ -143,16 +96,22 @@ export default function ChatPage() {
     const userMessage = {
       id: Date.now(),
       text: inputMessage,
+
       sender: 'user',
       modelsUsed: [],
       personality: personality
     }
 
+
+
     console.log('=== SETTING MESSAGES ===')
     setMessages(prev => [...prev, userMessage])
+
     setConversationHistory(prev => [...prev, userMessage])
     setInputMessage('')
     setIsTyping(true)
+
+
 
     console.log('=== STARTING API CALL ===')
     try {
@@ -164,25 +123,23 @@ export default function ChatPage() {
         body: JSON.stringify({
           message: inputMessage,
           conversationHistory: conversationHistory,
-          personalProfile: personalProfile,
-          psychologyProfile: psychologyProfile,
-          mentorName: mentorName,
-          arkContext: currentArkContext,
-          isCreatingArk: isCreatingArk
+          personalProfile: personalProfile // Include personal context
         })
       })
 
       console.log('=== API RESPONSE RECEIVED ===', response.status)
       if (response.ok) {
         const data = await response.json()
-        const aiMessage = {
-          id: Date.now() + 1,
+      const aiMessage = {
+        id: Date.now() + 1,
+
           text: data.response,
           sender: 'ai',
           modelsUsed: data.modelsUsed,
           personality: data.personality
-        }
-        setMessages(prev => [...prev, aiMessage])
+      }
+      setMessages(prev => [...prev, aiMessage])
+
         setConversationHistory(prev => [...prev, aiMessage])
       } else {
         throw new Error('Chat API failed')
@@ -199,6 +156,7 @@ export default function ChatPage() {
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsTyping(false)
+
     }
   }
 
@@ -241,64 +199,6 @@ export default function ChatPage() {
           Help Mentark understand who you are, where you come from, and what truly matters to you. This makes every Ark and conversation deeply personal.
         </p>
       </div>
-
-      {/* Psychology Profile Display */}
-      {psychologyProfile && (
-        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl p-8 border border-purple-500/50">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-white">Your Psychology Profile</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Core Traits</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Learning Style:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.learningStyle || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Motivation Type:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.motivationType || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Risk Tolerance:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.riskTolerance || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Decision Style:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.decisionStyle || 'Not assessed'}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">Behavioral Patterns</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Stress Response:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.stressResponse || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Social Preference:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.socialPreference || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Communication:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.communicationStyle || 'Not assessed'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Time Management:</span>
-                  <span className="text-white capitalize">{psychologyProfile.profile?.timeManagement || 'Not assessed'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Demographic Profile */}
@@ -665,17 +565,6 @@ export default function ChatPage() {
               <Target className="w-5 h-5" />
               <span>My Arks</span>
             </button>
-            <button
-              onClick={() => setActiveTab('assessment')}
-              className={`flex-1 px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
-                activeTab === 'assessment'
-                  ? 'bg-yellow-500 text-gray-900 font-semibold'
-                  : 'text-gray-300 hover:text-yellow-400'
-              }`}
-            >
-              <BarChart3 className="w-5 h-5" />
-              <span>Assessment</span>
-            </button>
           </div>
         </div>
       </div>
@@ -759,7 +648,6 @@ export default function ChatPage() {
 
           {activeTab === 'personalize' && renderPersonalizeTab()}
           {activeTab === 'arks' && renderArksTab()}
-          {activeTab === 'assessment' && <AssessmentWidget />}
         </div>
       </section>
     </div>
