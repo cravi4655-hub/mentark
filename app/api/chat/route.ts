@@ -2,40 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, category, timeframe, isCreatingArk } = await request.json()
+    console.log('=== CHAT API CALLED ===')
+    const { message, personality = 'friend', conversationHistory = [] } = await request.json()
+    console.log('Chat data received:', { message, personality, historyLength: conversationHistory.length })
     
-    if (isCreatingArk && category) {
-      const analysis = analyzeGoalFromConversation(conversationHistory, category, timeframe)
-      
-      if (analysis.isComplete) {
-        // Extract goal data and create roadmap immediately
-        const goalData = extractGoalData(conversationHistory, conversationHistory[conversationHistory.length - 1]?.text || '', category, timeframe)
-        
-        return NextResponse.json({
-          response: `Excellent! I have everything I need to create your personalized ${category} roadmap. Let me generate your detailed learning plan now...`,
-          chatCompleted: true,
-          goalData: goalData
-        })
-      } else {
-        // Ask only for missing information
-        const followUp = generateFollowUpQuestion(analysis.missingInfo, category, conversationHistory.map(m => m.text).join(' '))
-        
-        return NextResponse.json({
-          response: followUp,
-          chatCompleted: false
-        })
-      }
-    }
+    // Analyze question type and mood
+    const questionAnalysis = analyzeQuestion(message)
+    console.log('Question analysis:', questionAnalysis)
     
-    // Regular chat logic...
-    const response = await generateContextAwareChatResponse(message, psychologyProfile, mentorName, conversationHistory, personalProfile)
+    // Choose which model(s) to use
+    const selectedModels = selectModels(questionAnalysis)
+    console.log('Selected models:', selectedModels)
     
+    // Get responses from selected models
+    const responses = await getModelResponses(message, selectedModels, personality, conversationHistory)
+    
+    // Combine responses intelligently
+    const finalResponse = combineResponses(responses, questionAnalysis)
+    
+    console.log('Final response generated')
     return NextResponse.json({ 
-      response: response,
-      modelsUsed: ['chatgpt'],
-      personality: 'friend',
-      context: 'general',
-      chatCompleted: false
+      response: finalResponse,
+      modelsUsed: selectedModels,
+      personality: personality
     })
   } catch (error) {
     console.error('Chat API error:', error)
