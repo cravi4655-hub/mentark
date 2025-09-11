@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Star, Zap, Target, Users, BookOpen, DollarSign, Activity, CheckCircle, Brain, Heart, Lightbulb, ArrowRight, Mail, MessageSquare, User, Menu, X } from 'lucide-react'
 import AssessmentWidget from './components/AssessmentWidget'
 
@@ -8,6 +8,9 @@ export default function HomePage() {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [showTagline, setShowTagline] = useState(false)
+  const [liveCounter, setLiveCounter] = useState(12847)
   const [activeTab, setActiveTab] = useState('home')
   const [showComingSoon, setShowComingSoon] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -22,9 +25,31 @@ export default function HomePage() {
   const [isContactSubmitted, setIsContactSubmitted] = useState(false)
   const [isContactLoading, setIsContactLoading] = useState(false)
 
+  // Animation effects
+  useEffect(() => {
+    const timer = setTimeout(() => setShowTagline(true), 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Live counter animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveCounter(prev => prev + Math.floor(Math.random() * 3) + 1)
+    }, 30000) // Update every 30 seconds
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleCategoryToggle = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    )
+  }
+
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
+    if (!email.trim() || selectedCategories.length === 0) return
 
     setIsLoading(true)
     try {
@@ -33,12 +58,19 @@ export default function HomePage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ 
+          email, 
+          categories: selectedCategories,
+          interests: selectedCategories.join(', ')
+        })
       })
 
       if (response.ok) {
         setIsSubmitted(true)
         setEmail('')
+        setSelectedCategories([])
+        // Increment live counter
+        setLiveCounter(prev => prev + 1)
       } else {
         throw new Error('Failed to join waitlist')
       }
@@ -91,50 +123,190 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Waitlist Form */}
-        <div className="max-w-2xl mx-auto mb-12 sm:mb-16 px-4 sm:px-0" id="waitlist">
+        {/* Animated Tagline */}
+        <div className="max-w-4xl mx-auto mb-8 sm:mb-12 px-4 sm:px-0">
+          <div className="text-center space-y-2 sm:space-y-4">
+            <div className={`transition-all duration-1000 ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-lg sm:text-xl text-gray-400">Google gives information</p>
+            </div>
+            <div className={`transition-all duration-1000 delay-300 ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-lg sm:text-xl text-gray-400">YouTube gives tutorials</p>
+            </div>
+            <div className={`transition-all duration-1000 delay-600 ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-lg sm:text-xl text-gray-400">ChatGPT gives answers</p>
+            </div>
+            <div className={`transition-all duration-1000 delay-900 ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-2xl sm:text-3xl font-bold text-white">
+                <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">Mentark gives direction</span>
+              </p>
+            </div>
+            <div className={`transition-all duration-1000 delay-1200 ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <p className="text-lg sm:text-xl text-gray-300">— goals, roadmaps, accountability</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Counter */}
+        <div className="text-center mb-8 sm:mb-12 px-4 sm:px-0">
+          <div className="inline-flex items-center space-x-2 bg-gray-800/50 rounded-full px-4 py-2 border border-gray-700">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-sm text-gray-300">
+              Join <span className="text-yellow-400 font-bold">{liveCounter.toLocaleString()}</span> others transforming their lives
+            </span>
+          </div>
+        </div>
+
+        {/* Waitlist Form with Categories */}
+        <div className="max-w-4xl mx-auto mb-12 sm:mb-16 px-4 sm:px-0" id="waitlist">
           {!isSubmitted ? (
-            <form onSubmit={handleWaitlistSubmit} className="space-y-4 sm:space-y-6">
+            <div className="space-y-6 sm:space-y-8">
+              {/* Category Selection */}
               <div className="text-center mb-6 sm:mb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">Join the Waitlist</h2>
-                <p className="text-lg sm:text-xl text-gray-300">
-                  Be the first to experience the future of personal development
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">What challenges are you facing?</h2>
+                <p className="text-lg sm:text-xl text-gray-300 mb-2">
+                  Select the areas where you need direction (choose 1-3)
+                </p>
+                <p className="text-sm text-gray-400">
+                  Most popular: <span className="text-yellow-400 font-semibold">Finance</span> • <span className="text-yellow-400 font-semibold">Career</span>
                 </p>
               </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base sm:text-lg"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg min-h-[48px]"
-                >
-                  {isLoading ? 'Joining...' : 'Join Waitlist'}
-                </button>
+
+              {/* Category Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                {[
+                  { 
+                    id: 'finance',
+                    name: 'Finance', 
+                    icon: <DollarSign className="w-6 h-6" />, 
+                    color: 'from-green-500 to-emerald-500',
+                    description: 'Money management & wealth building'
+                  },
+                  { 
+                    id: 'career',
+                    name: 'Career', 
+                    icon: <Target className="w-6 h-6" />, 
+                    color: 'from-blue-500 to-cyan-500',
+                    description: 'Professional growth & advancement'
+                  },
+                  { 
+                    id: 'health',
+                    name: 'Health', 
+                    icon: <Activity className="w-6 h-6" />, 
+                    color: 'from-red-500 to-orange-500',
+                    description: 'Fitness & wellness goals'
+                  },
+                  { 
+                    id: 'relationships',
+                    name: 'Relationships', 
+                    icon: <Users className="w-6 h-6" />, 
+                    color: 'from-pink-500 to-rose-500',
+                    description: 'Building meaningful connections'
+                  },
+                  { 
+                    id: 'learning',
+                    name: 'Learning', 
+                    icon: <BookOpen className="w-6 h-6" />, 
+                    color: 'from-indigo-500 to-blue-500',
+                    description: 'Mastering new skills'
+                  },
+                  { 
+                    id: 'personal',
+                    name: 'Personal', 
+                    icon: <Star className="w-6 h-6" />, 
+                    color: 'from-purple-500 to-pink-500',
+                    description: 'Confidence & life skills'
+                  }
+                ].map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryToggle(category.id)}
+                    className={`p-4 sm:p-6 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
+                      selectedCategories.includes(category.id)
+                        ? 'border-yellow-400 bg-yellow-400/10 shadow-lg shadow-yellow-400/20'
+                        : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mb-3 sm:mb-4 mx-auto transition-transform duration-200 ${
+                      selectedCategories.includes(category.id) ? 'scale-110' : ''
+                    }`}>
+                      {category.icon}
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{category.name}</h3>
+                    <p className="text-sm text-gray-400 text-center">{category.description}</p>
+                    {selectedCategories.includes(category.id) && (
+                      <div className="mt-3 flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-yellow-400" />
+                        <span className="ml-2 text-sm text-yellow-400 font-semibold">Selected</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
-              
-              <p className="text-sm text-gray-400 text-center">
-                We'll notify you when Mentark is ready. No spam, just updates.
-              </p>
-            </form>
+
+              {/* Email Form */}
+              <form onSubmit={handleWaitlistSubmit} className="space-y-4 sm:space-y-6">
+                <div className="text-center">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
+                    Get early access to {selectedCategories.length > 0 ? selectedCategories.join(' & ') : 'your selected areas'}
+                  </h3>
+                  <p className="text-gray-300">
+                    Be the first to know when we launch solutions for your challenges
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base sm:text-lg transition-all duration-200"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading || selectedCategories.length === 0}
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg min-h-[48px]"
+                  >
+                    {isLoading ? 'Joining...' : 'Get Early Access'}
+                  </button>
+                </div>
+                
+                {selectedCategories.length === 0 && (
+                  <p className="text-sm text-red-400 text-center">
+                    Please select at least one area where you need direction
+                  </p>
+                )}
+                
+                <p className="text-sm text-gray-400 text-center">
+                  No spam, just exclusive updates about your selected areas
+                </p>
+              </form>
+            </div>
           ) : (
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30 animate-pulse">
                 <CheckCircle className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-white mb-4">You're on the list!</h2>
+              <h2 className="text-3xl font-bold text-white mb-4">You're in! 🎉</h2>
               <p className="text-xl text-gray-300 mb-6">
-                We'll notify you as soon as Mentark is ready to transform your life.
+                We'll notify you as soon as we launch solutions for your selected challenges.
               </p>
+              <div className="bg-gray-800/30 rounded-xl p-4 mb-6 max-w-md mx-auto">
+                <p className="text-sm text-gray-400 mb-2">You'll get early access to:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {selectedCategories.map((category, index) => (
+                    <span key={index} className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm font-semibold">
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <button
-                onClick={() => setIsSubmitted(false)}
+                onClick={() => {
+                  setIsSubmitted(false)
+                  setSelectedCategories([])
+                }}
                 className="px-6 py-3 border-2 border-gray-600 rounded-xl text-gray-300 hover:border-yellow-400 hover:text-yellow-400 transition-all duration-200"
               >
                 Join Another Email
@@ -513,6 +685,16 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(250,204,21,0.1),transparent_50%)]"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1),transparent_50%)]"></div>
       
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-yellow-400/30 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-blue-400/40 rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/6 w-1.5 h-1.5 bg-purple-400/30 rounded-full animate-pulse delay-2000"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-1 h-1 bg-green-400/40 rounded-full animate-pulse delay-500"></div>
+        <div className="absolute bottom-1/4 left-1/2 w-2 h-2 bg-orange-400/30 rounded-full animate-pulse delay-1500"></div>
+        <div className="absolute top-2/3 right-1/6 w-1 h-1 bg-pink-400/40 rounded-full animate-pulse delay-3000"></div>
+      </div>
+      
       {/* Navigation */}
       <nav className="relative z-10 px-4 sm:px-6 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -552,12 +734,6 @@ export default function HomePage() {
               </button>
             </div>
             
-            <button
-              onClick={() => window.location.href = '/train/student'}
-              className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30 text-sm sm:text-base"
-            >
-              Train Your Model
-            </button>
             <button
               onClick={handleTryDemo}
               className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 text-sm sm:text-base"
@@ -611,15 +787,6 @@ export default function HomePage() {
               
               {/* Action Buttons */}
               <div className="flex flex-col space-y-3 pt-4 border-t border-gray-700">
-                <button
-                  onClick={() => {
-                    window.location.href = '/train/student'
-                    setIsMobileMenuOpen(false)
-                  }}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30"
-                >
-                  Train Your Model
-                </button>
                 <button
                   onClick={() => {
                     handleTryDemo()
