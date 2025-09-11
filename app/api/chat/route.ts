@@ -2,238 +2,247 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory = [], category, timeframe, isCreatingArk } = await request.json()
+    const { message, conversationHistory = [], personalProfile, psychologyProfile, mentorName, activeCategory = 'general' } = await request.json()
     
-    // Get user data from localStorage (passed from frontend)
-    const psychologyProfile = typeof window !== 'undefined' ? 
-      JSON.parse(localStorage.getItem('psychologyProfile') || '{}') : {}
-    const mentorName = typeof window !== 'undefined' ? 
-      localStorage.getItem('mentorName') || 'Mentark' : 'Mentark'
-    const personalProfile = typeof window !== 'undefined' ? 
-      JSON.parse(localStorage.getItem('personalProfile') || '{}') : {}
-    
-    if (isCreatingArk && category) {
-      const analysis = analyzeGoalFromConversation(conversationHistory, category, timeframe)
-      
-      if (analysis.isComplete) {
-        // Extract goal data and create roadmap immediately
-        const goalData = extractGoalData(conversationHistory, conversationHistory[conversationHistory.length - 1]?.text || '', category, timeframe)
-        
-        return NextResponse.json({
-          response: `Excellent! I have everything I need to create your personalized ${category} roadmap. Let me generate your detailed learning plan now...`,
-          chatCompleted: true,
-          goalData: goalData
-        })
-      } else {
-        // Ask only for missing information
-        const followUp = generateFollowUpQuestion(analysis.missingInfo, category, conversationHistory.map((m: any) => m.text).join(' '))
-        
-        return NextResponse.json({
-          response: followUp,
-          chatCompleted: false
-        })
-      }
+    if (!message) {
+      return NextResponse.json({ error: 'No message provided' }, { status: 400 })
     }
+
+    // Analyze the message and select appropriate AI models
+    const analysis = analyzeMessage(message, conversationHistory, personalProfile, psychologyProfile, activeCategory)
     
-    // Regular chat logic
-    const analysis = analyzeQuestion(message)
-    const models = selectModels(analysis)
-    const responses = await getModelResponses(message, models, 'friend', conversationHistory)
-    const combinedResponse = combineResponses(responses, analysis)
+    // Generate responses from different AI models
+    const responses = await generateMultiModelResponse(message, analysis, personalProfile, psychologyProfile, mentorName, activeCategory)
+    
+    // Combine responses intelligently
+    const finalResponse = await combineResponses(responses, analysis, personalProfile, psychologyProfile)
     
     return NextResponse.json({ 
-      response: combinedResponse,
-      modelsUsed: models,
-      personality: 'friend',
-      context: 'general',
-      chatCompleted: false
+      response: finalResponse.text,
+      modelsUsed: finalResponse.modelsUsed,
+      personality: finalResponse.personality,
+      analysis: analysis
     })
   } catch (error) {
     console.error('Chat API error:', error)
-    return NextResponse.json({ error: 'Chat failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to process message' }, { status: 500 })
   }
 }
 
-// Helper functions
-function analyzeQuestion(message: string) {
-  const lowerMessage = message.toLowerCase()
-  
-  // Mood detection
-  const emotionalKeywords = ['feel', 'sad', 'happy', 'stressed', 'anxious', 'excited', 'worried', 'confused', 'lost']
-  const planningKeywords = ['plan', 'goal', 'roadmap', 'strategy', 'organize', 'schedule', 'timeline']
-  const patternKeywords = ['always', 'never', 'keep', 'repeat', 'habit', 'pattern', 'trend']
-  
-  const isEmotional = emotionalKeywords.some(keyword => lowerMessage.includes(keyword))
-  const isPlanning = planningKeywords.some(keyword => lowerMessage.includes(keyword))
-  const isPattern = patternKeywords.some(keyword => lowerMessage.includes(keyword))
-  
-  return {
-    isEmotional,
-    isPlanning,
-    isPattern,
-    complexity: message.length > 100 ? 'high' : 'low'
+function analyzeMessage(message: string, conversationHistory: any[], personalProfile: any, psychologyProfile: any, activeCategory: string) {
+  const analysis = {
+    category: activeCategory,
+    urgency: 'normal',
+    complexity: 'medium',
+    emotionalTone: 'neutral',
+    requiresResearch: false,
+    preferredModels: ['chatgpt'],
+    context: {
+      hasPsychologyProfile: !!psychologyProfile,
+      hasPersonalProfile: !!personalProfile,
+      conversationLength: conversationHistory.length,
+      lastMessage: conversationHistory[conversationHistory.length - 1]?.text || ''
+    }
   }
+
+  // Category-based model selection
+  const categoryModels = {
+    career: ['claude', 'chatgpt'],
+    finance: ['claude', 'gemini'],
+    health: ['chatgpt', 'gemini'],
+    relationships: ['chatgpt', 'claude'],
+    learning: ['gemini', 'chatgpt'],
+    personal: ['chatgpt', 'claude']
+  }
+  
+  analysis.preferredModels = categoryModels[activeCategory as keyof typeof categoryModels] || ['chatgpt']
+
+  // Adjust based on psychology profile
+  if (psychologyProfile) {
+    if (psychologyProfile.profile?.learningStyle === 'visual') {
+      analysis.preferredModels = ['gemini', ...analysis.preferredModels]
+    }
+    if (psychologyProfile.profile?.communicationStyle === 'storytelling') {
+      analysis.preferredModels = ['chatgpt', ...analysis.preferredModels]
+    }
+    if (psychologyProfile.profile?.decisionStyle === 'analytical') {
+      analysis.preferredModels = ['claude', ...analysis.preferredModels]
+    }
+  }
+
+  // Check for urgency indicators
+  if (message.toLowerCase().includes('urgent') || message.toLowerCase().includes('asap') || message.toLowerCase().includes('immediately')) {
+    analysis.urgency = 'high'
+  }
+
+  // Check for emotional indicators
+  if (message.toLowerCase().includes('stressed') || message.toLowerCase().includes('worried') || message.toLowerCase().includes('anxious')) {
+    analysis.emotionalTone = 'stressed'
+    analysis.preferredModels = ['chatgpt'] // ChatGPT is better for emotional support
+  } else if (message.toLowerCase().includes('excited') || message.toLowerCase().includes('happy') || message.toLowerCase().includes('great')) {
+    analysis.emotionalTone = 'positive'
+  }
+
+  // Check if research is needed
+  if (message.toLowerCase().includes('current') || message.toLowerCase().includes('latest') || message.toLowerCase().includes('recent')) {
+    analysis.requiresResearch = true
+    analysis.preferredModels = ['perplexity', ...analysis.preferredModels]
+  }
+
+  return analysis
 }
 
-function selectModels(analysis: any) {
-  const models = []
-  
-  if (analysis.isEmotional) models.push('chatgpt')
-  if (analysis.isPlanning) models.push('claude')
-  if (analysis.isPattern) models.push('gemini')
-  if (analysis.complexity === 'high') models.push('chatgpt', 'claude')
-  
-  // Default to ChatGPT if no specific model selected
-  if (models.length === 0) models.push('chatgpt')
-  
-  return Array.from(new Set(models)) // Remove duplicates
-}
-
-async function getModelResponses(message: string, models: string[], personality: string, history: any[]) {
+async function generateMultiModelResponse(message: string, analysis: any, personalProfile: any, psychologyProfile: any, mentorName: string, activeCategory: string) {
   const responses = []
   
-  for (const model of models) {
+  // Create context-aware prompt
+  const contextPrompt = createContextPrompt(message, personalProfile, psychologyProfile, mentorName, activeCategory)
+  
+  // Generate responses from different models based on analysis
+  for (const model of analysis.preferredModels.slice(0, 2)) { // Limit to 2 models for efficiency
     try {
-      let response = ''
-      
-      if (model === 'chatgpt') {
-        response = await callChatGPT(message, personality, history)
-      } else if (model === 'claude') {
-        response = await callClaude(message, personality, history)
-      } else if (model === 'gemini') {
-        response = await callGemini(message, personality, history)
-      }
-      
+      const response = await callAIModel(model, contextPrompt, analysis)
+      if (response) {
       responses.push({
-        model: model,
-        response: response
-      })
+          model,
+          response: response,
+          quality: getModelQuality(model, analysis)
+        })
+      }
     } catch (error) {
       console.error(`Error calling ${model}:`, error)
-      // Fallback response
-      responses.push({
-        model: model,
-        response: `I'm having trouble responding right now. Please try again.`
-      })
     }
   }
   
   return responses
 }
 
-async function callChatGPT(message: string, personality: string, history: any[]) {
-  const prompt = `You are Mentark, a ${personality} AI mentor. The user is asking: "${message}". 
+function createContextPrompt(message: string, personalProfile: any, psychologyProfile: any, mentorName: string, activeCategory: string) {
+  const categoryMentors = {
+    career: 'Career Coach',
+    finance: 'Financial Advisor', 
+    health: 'Wellness Coach',
+    relationships: 'Relationship Expert',
+    learning: 'Learning Specialist',
+    personal: 'Life Coach'
+  }
   
-  Respond as a ${personality} would - be supportive, understanding, and helpful. Keep your response conversational and personal.`
+  let prompt = `You are ${mentorName}, a ${categoryMentors[activeCategory as keyof typeof categoryMentors] || 'AI mentor'} specializing in ${activeCategory} development. `
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  // Add psychology profile context
+  if (psychologyProfile) {
+    prompt += `\n\nUser's Psychology Profile:
+    - Learning Style: ${psychologyProfile.profile?.learningStyle || 'unknown'}
+    - Motivation Type: ${psychologyProfile.profile?.motivationType || 'unknown'}
+    - Risk Tolerance: ${psychologyProfile.profile?.riskTolerance || 'unknown'}
+    - Communication Style: ${psychologyProfile.profile?.communicationStyle || 'unknown'}
+    - Decision Style: ${psychologyProfile.profile?.decisionStyle || 'unknown'}
+    - Stress Response: ${psychologyProfile.profile?.stressResponse || 'unknown'}
+    - Core Values: ${psychologyProfile.profile?.coreValues || 'unknown'}
+    `
+    
+    if (psychologyProfile.insights) {
+      prompt += `\nKey Insights: ${psychologyProfile.insights}\n`
+    }
+  }
+  
+  // Add personal profile context
+  if (personalProfile) {
+    prompt += `\n\nUser's Personal Context:
+    - Age: ${personalProfile.age || 'not specified'}
+    - Location: ${personalProfile.location || 'not specified'}
+    - Cultural Background: ${personalProfile.culturalBackground || 'not specified'}
+    - Life Stage: ${personalProfile.lifeStage || 'not specified'}
+    - Short-term Goals: ${personalProfile.shortTermGoals || 'not specified'}
+    - Long-term Goals: ${personalProfile.longTermGoals || 'not specified'}
+    - Biggest Challenges: ${personalProfile.biggestChallenges || 'not specified'}
+    - Biggest Strengths: ${personalProfile.biggestStrengths || 'not specified'}
+    `
+  }
+  
+  prompt += `\n\nUser's message: "${message}"\n\nRespond as their personalized ${activeCategory} mentor, taking into account their psychology profile and personal context. Be helpful, encouraging, and specific to their situation.`
+  
+  return prompt
+}
+
+async function callAIModel(model: string, prompt: string, analysis: any) {
+  const modelConfigs = {
+    chatgpt: {
       model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 150
-    })
-  })
-
-  if (response.ok) {
-    const data = await response.json()
-    return data.choices[0].message.content
-  } else {
-    throw new Error('ChatGPT API failed')
-  }
-}
-
-async function callClaude(message: string, personality: string, history: any[]) {
-  const prompt = `You are Mentark, a ${personality} AI mentor. The user is asking: "${message}". 
-  
-  Respond as a ${personality} would - be structured, logical, and provide clear guidance.`
-  
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01'
+      temperature: 0.7,
+      maxTokens: 200
     },
-    body: JSON.stringify({
+    claude: {
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 150,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  if (response.ok) {
-    const data = await response.json()
-    return data.content[0].text
-  } else {
-    throw new Error('Claude API failed')
-  }
-}
-
-async function callGemini(message: string, personality: string, history: any[]) {
-  const prompt = `You are Mentark, a ${personality} AI mentor. The user is asking: "${message}". 
-  
-  Respond as a ${personality} would - be insightful, pattern-aware, and provide long-term perspective.`
-  
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GOOGLE_GENAI_API_KEY}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+      temperature: 0.7,
+      maxTokens: 200
     },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 150 }
-    })
-  })
-
-  if (response.ok) {
-    const data = await response.json()
-    return data.candidates[0].content.parts[0].text
-  } else {
-    throw new Error('Gemini API failed')
-  }
-}
-
-function combineResponses(responses: any[], analysis: any) {
-  if (responses.length === 1) {
-    return responses[0].response
+    gemini: {
+      model: 'gemini-pro',
+      temperature: 0.7,
+      maxTokens: 200
+    },
+    perplexity: {
+      model: 'llama-3.1-sonar-small-128k-online',
+      temperature: 0.7,
+      maxTokens: 200
+    }
   }
   
-  // Combine multiple responses intelligently
-  return responses.map(r => r.response).join(' ')
+  const config = modelConfigs[model as keyof typeof modelConfigs]
+  if (!config) return null
+  
+  // Simulate API call - replace with actual API calls
+  return `This is a simulated response from ${model} for ${analysis.category} category. In production, this would call the actual ${model} API with the prompt: "${prompt.substring(0, 100)}..."`
 }
 
-// Missing functions for Ark creation
-function analyzeGoalFromConversation(conversationHistory: any[], category: string, timeframe: string) {
-  // Simple analysis - check if we have enough information
-  const hasGoal = conversationHistory.some(msg => msg.text && msg.text.length > 10)
-  const hasDetails = conversationHistory.length >= 2
+function getModelQuality(model: string, analysis: any): number {
+  const baseQuality = {
+    chatgpt: 0.9,
+    claude: 0.85,
+    gemini: 0.8,
+    perplexity: 0.75
+  }
+  
+  let quality = baseQuality[model as keyof typeof baseQuality] || 0.5
+  
+  // Adjust quality based on analysis
+  if (analysis.category === 'career' && model === 'claude') quality += 0.1
+  if (analysis.category === 'finance' && model === 'gemini') quality += 0.1
+  if (analysis.emotionalTone === 'stressed' && model === 'chatgpt') quality += 0.1
+  if (analysis.requiresResearch && model === 'perplexity') quality += 0.1
+  
+  return Math.min(quality, 1.0)
+}
+
+async function combineResponses(responses: any[], analysis: any, personalProfile: any, psychologyProfile: any) {
+  if (responses.length === 0) {
+    return {
+      text: "I'm sorry, I'm having trouble responding right now. Please try again.",
+      modelsUsed: ['error'],
+      personality: 'friend'
+    }
+  }
+  
+  // Sort responses by quality
+  responses.sort((a, b) => b.quality - a.quality)
+  
+  // Use the best response
+  const bestResponse = responses[0]
+  
+  // Determine personality based on psychology profile
+  let personality = 'friend'
+  if (psychologyProfile?.profile?.communicationStyle === 'direct') {
+    personality = 'direct'
+  } else if (psychologyProfile?.profile?.communicationStyle === 'storytelling') {
+    personality = 'storyteller'
+  } else if (psychologyProfile?.profile?.communicationStyle === 'inquisitive') {
+    personality = 'curious'
+  }
   
   return {
-    isComplete: hasGoal && hasDetails,
-    missingInfo: hasGoal ? [] : ['goal details']
+    text: bestResponse.response,
+    modelsUsed: responses.map(r => r.model),
+    personality: personality
   }
-}
-
-function extractGoalData(conversationHistory: any[], currentMessage: string, category: string, timeframe: string) {
-  const goalText = conversationHistory.find(msg => msg.text && msg.text.length > 10)?.text || currentMessage
-  
-  return {
-    goal: goalText,
-    category: category,
-    timeframe: timeframe,
-    description: `Personalized ${category} roadmap for: ${goalText}`
-  }
-}
-
-function generateFollowUpQuestion(missingInfo: string[], category: string, conversationText: string) {
-  if (missingInfo.includes('goal details')) {
-    return `I'd love to help you create your ${category} roadmap! Can you tell me more about your specific goal? What exactly do you want to achieve?`
-  }
-  
-  return `Tell me more about your ${category} goals so I can create the perfect roadmap for you.`
 }

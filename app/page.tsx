@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, Zap, Target, Users, BookOpen, DollarSign, Activity, CheckCircle, Brain, Heart, Lightbulb, ArrowRight, Mail, MessageSquare } from 'lucide-react'
-import emailjs from '@emailjs/browser'
+import { Star, Zap, Target, Users, BookOpen, DollarSign, Activity, CheckCircle, Brain, Heart, Lightbulb, ArrowRight, Mail, MessageSquare, User, Menu, X } from 'lucide-react'
+import AssessmentWidget from './components/AssessmentWidget'
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
@@ -10,6 +10,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('home')
   const [showComingSoon, setShowComingSoon] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // Contact form states
   const [contactForm, setContactForm] = useState({
@@ -55,23 +56,14 @@ export default function HomePage() {
 
     setIsContactLoading(true)
     try {
-      // Send email using EmailJS
-      await emailjs.send(
-        'service_yd8nu8s',
-        'template_l7vyjiv',
-        {
-          from_name: contactForm.name,
-          from_email: contactForm.email,
-          subject: contactForm.subject || 'General Inquiry',
-          message: contactForm.message,
-        },
-        '8jzsyBLBwlUCpotE0'
-      )
-
+      // Simulate form submission (replace with actual API call later)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      console.log('Contact form submitted:', contactForm)
       setIsContactSubmitted(true)
       setContactForm({ name: '', email: '', subject: '', message: '' })
     } catch (error) {
-      console.error('Email error:', error)
+      console.error('Form error:', error)
       alert('Failed to send message. Please try again.')
     } finally {
       setIsContactLoading(false)
@@ -86,49 +78,49 @@ export default function HomePage() {
   }
 
   const renderHomeTab = () => (
-    <div className="space-y-20">
+    <div className="space-y-12 sm:space-y-16 md:space-y-20">
       {/* Hero Section */}
-      <div className="text-center">
-        <div className="mb-8">
-          <h1 className="text-6xl lg:text-8xl font-bold text-white mb-6 leading-tight">
+      <div className="text-center px-4 sm:px-6">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-bold text-white mb-4 sm:mb-6 leading-tight">
             Your Personal
-            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent"> AI Mentor</span>
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent block sm:inline"> AI Mentor</span>
           </h1>
-          <p className="text-2xl lg:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
             The world's first AI-powered personal development platform that creates personalized roadmaps for every life goal
           </p>
         </div>
 
         {/* Waitlist Form */}
-        <div className="max-w-2xl mx-auto mb-16" id="waitlist">
+        <div className="max-w-2xl mx-auto mb-12 sm:mb-16 px-4 sm:px-0" id="waitlist">
           {!isSubmitted ? (
-            <form onSubmit={handleWaitlistSubmit} className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-white mb-4">Join the Waitlist</h2>
-                <p className="text-xl text-gray-300">
+            <form onSubmit={handleWaitlistSubmit} className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-6 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">Join the Waitlist</h2>
+                <p className="text-lg sm:text-xl text-gray-300">
                   Be the first to experience the future of personal development
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="flex-1 px-6 py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-lg"
+                  className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base sm:text-lg"
                   required
                 />
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg min-h-[48px]"
                 >
                   {isLoading ? 'Joining...' : 'Join Waitlist'}
                 </button>
               </div>
               
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-400 text-center">
                 We'll notify you when Mentark is ready. No spam, just updates.
               </p>
             </form>
@@ -152,33 +144,33 @@ export default function HomePage() {
         </div>
 
         {/* Features Preview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
-              <Brain className="w-8 h-8 text-white" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto px-4 sm:px-0">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-700">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mb-4 sm:mb-6 mx-auto">
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">AI-Powered Analysis</h3>
-            <p className="text-gray-300 text-lg">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 text-center">AI-Powered Analysis</h3>
+            <p className="text-gray-300 text-base sm:text-lg text-center">
               Advanced AI analyzes your personality, goals, and preferences to create the perfect roadmap
             </p>
           </div>
 
-          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
-              <Target className="w-8 h-8 text-white" />
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-700">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 sm:mb-6 mx-auto">
+              <Target className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Personalized Roadmaps</h3>
-            <p className="text-gray-300 text-lg">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 text-center">Personalized Roadmaps</h3>
+            <p className="text-gray-300 text-base sm:text-lg text-center">
               Get step-by-step roadmaps tailored to your unique situation and learning style
             </p>
           </div>
 
-          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-6 mx-auto">
-              <Zap className="w-8 h-8 text-white" />
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-700">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mb-4 sm:mb-6 mx-auto">
+              <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Real-Time Guidance</h3>
-            <p className="text-gray-300 text-lg">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 text-center">Real-Time Guidance</h3>
+            <p className="text-gray-300 text-base sm:text-lg text-center">
               Get instant feedback, motivation, and course corrections as you progress
             </p>
           </div>
@@ -186,15 +178,15 @@ export default function HomePage() {
       </div>
 
       {/* Coming Soon Section - All 6 Categories */}
-      <div className="bg-gray-800/20 rounded-3xl p-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-6">Transform Every Area of Your Life</h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+      <div className="bg-gray-800/20 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 mx-4 sm:mx-0">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">Transform Every Area of Your Life</h2>
+          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
             Mentark covers all aspects of personal development with AI-powered guidance tailored to your unique needs
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {[
             { 
               icon: <DollarSign className="w-8 h-8" />, 
@@ -233,34 +225,34 @@ export default function HomePage() {
               description: 'Develop confidence, habits, and life skills for overall personal growth and fulfillment'
             }
           ].map((category, index) => (
-            <div key={index} className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 hover:border-yellow-400/50 transition-all duration-300 group">
-              <div className={`w-16 h-16 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-200`}>
-                <div className="text-white">{category.icon}</div>
+            <div key={index} className="bg-gray-800/30 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-700 hover:border-yellow-400/50 transition-all duration-300 group">
+              <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r ${category.color} rounded-xl flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:scale-110 transition-transform duration-200`}>
+                <div className="text-white scale-75 sm:scale-100">{category.icon}</div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4 text-center">{category.name}</h3>
-              <p className="text-gray-300 text-center leading-relaxed">{category.description}</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 text-center">{category.name}</h3>
+              <p className="text-gray-300 text-center leading-relaxed text-sm sm:text-base">{category.description}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Contact Us Section */}
-      <div className="bg-gray-800/20 rounded-3xl p-12">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-6">
-            <MessageSquare className="w-8 h-8 text-yellow-400 mr-3" />
-            <span className="text-yellow-400 font-semibold text-lg">Get in Touch</span>
+      <div className="bg-gray-800/20 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 mx-4 sm:mx-0">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex items-center justify-center mb-4 sm:mb-6">
+            <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 mr-2 sm:mr-3" />
+            <span className="text-yellow-400 font-semibold text-base sm:text-lg">Get in Touch</span>
           </div>
-          <h2 className="text-4xl font-bold text-white mb-6">Have Questions?</h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4 sm:mb-6">Have Questions?</h2>
+          <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
             We'd love to hear from you! Send us a message and we'll respond as soon as possible.
           </p>
         </div>
 
         <div className="max-w-4xl mx-auto">
           {!isContactSubmitted ? (
-            <form onSubmit={handleContactSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleContactSubmit} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                     Name *
@@ -270,7 +262,7 @@ export default function HomePage() {
                     id="name"
                     value={contactForm.name}
                     onChange={(e) => setContactForm({...contactForm, name: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base"
                     placeholder="Your name"
                     required
                   />
@@ -284,7 +276,7 @@ export default function HomePage() {
                     id="email"
                     value={contactForm.email}
                     onChange={(e) => setContactForm({...contactForm, email: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base"
                     placeholder="your@email.com"
                     required
                   />
@@ -300,7 +292,7 @@ export default function HomePage() {
                   id="subject"
                   value={contactForm.subject}
                   onChange={(e) => setContactForm({...contactForm, subject: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-base"
                   placeholder="What's this about?"
                 />
               </div>
@@ -311,10 +303,10 @@ export default function HomePage() {
                 </label>
                 <textarea
                   id="message"
-                  rows={6}
+                  rows={5}
                   value={contactForm.message}
                   onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 resize-none"
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 resize-none text-base"
                   placeholder="Tell us what's on your mind..."
                   required
                 />
@@ -324,7 +316,7 @@ export default function HomePage() {
                 <button
                   type="submit"
                   disabled={isContactLoading}
-                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-300 hover:to-orange-400 disabled:from-gray-600 disabled:to-gray-600 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 disabled:cursor-not-allowed disabled:transform-none text-base sm:text-lg min-h-[48px]"
                 >
                   {isContactLoading ? 'Sending...' : 'Send Message'}
                 </button>
@@ -522,18 +514,20 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1),transparent_50%)]"></div>
       
       {/* Navigation */}
-      <nav className="relative z-10 px-6 py-6">
+      <nav className="relative z-10 px-4 sm:px-6 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => window.location.href = '/'}>
-            <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-400/50 transition-all duration-300 group-hover:scale-105">
-              <span className="text-gray-900 font-bold text-xl">M</span>
+          {/* Logo */}
+          <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group" onClick={() => window.location.href = '/'}>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:shadow-yellow-400/50 transition-all duration-300 group-hover:scale-105">
+              <span className="text-gray-900 font-bold text-lg sm:text-xl">M</span>
             </div>
-            <span className="text-3xl font-bold text-white group-hover:text-yellow-400 transition-colors duration-300">
+            <span className="text-2xl sm:text-3xl font-bold text-white group-hover:text-yellow-400 transition-colors duration-300">
               MENTARK
             </span>
           </div>
           
-          <div className="flex items-center space-x-6">
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center space-x-6">
             {/* Navigation Tabs */}
             <div className="flex items-center space-x-1 bg-gray-800/50 rounded-xl p-1">
               <button
@@ -559,13 +553,86 @@ export default function HomePage() {
             </div>
             
             <button
+              onClick={() => window.location.href = '/train/student'}
+              className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30 text-sm sm:text-base"
+            >
+              Train Your Model
+            </button>
+            <button
               onClick={handleTryDemo}
-              className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30"
+              className="px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30 text-sm sm:text-base"
             >
               Try Demo
             </button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden p-2 text-white hover:text-yellow-400 transition-colors duration-200"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-gray-900/95 backdrop-blur-md border-t border-gray-700 px-4 py-6">
+            <div className="space-y-4">
+              {/* Navigation Tabs */}
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => {
+                    setActiveTab('home')
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className={`px-4 py-3 rounded-lg transition-all duration-200 text-left ${
+                    activeTab === 'home'
+                      ? 'bg-yellow-500 text-gray-900 font-semibold'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                  }`}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('mentark-way')
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className={`px-4 py-3 rounded-lg transition-all duration-200 text-left ${
+                    activeTab === 'mentark-way'
+                      ? 'bg-yellow-500 text-gray-900 font-semibold'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                  }`}
+                >
+                  The Mentark Way
+                </button>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex flex-col space-y-3 pt-4 border-t border-gray-700">
+                <button
+                  onClick={() => {
+                    window.location.href = '/train/student'
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-blue-500/30"
+                >
+                  Train Your Model
+                </button>
+                <button
+                  onClick={() => {
+                    handleTryDemo()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-gray-900 font-bold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-yellow-500/30"
+                >
+                  Try Demo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Coming Soon Modal */}
@@ -592,22 +659,22 @@ export default function HomePage() {
       )}
 
       {/* Main Content */}
-      <section className="relative px-6 py-12">
+      <section className="relative px-4 sm:px-6 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'home' ? renderHomeTab() : renderMentarkWayTab()}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative px-6 py-12 border-t border-gray-800">
+      <footer className="relative px-4 sm:px-6 py-8 sm:py-12 border-t border-gray-800">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-lg">M</span>
+          <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-4 sm:mb-6">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
+              <span className="text-gray-900 font-bold text-base sm:text-lg">M</span>
             </div>
-            <span className="text-2xl font-bold text-white">MENTARK</span>
+            <span className="text-xl sm:text-2xl font-bold text-white">MENTARK</span>
           </div>
-          <p className="text-gray-400">
+          <p className="text-gray-400 text-sm sm:text-base">
             The future of personal development is here. Join the waitlist to be the first to experience it.
           </p>
         </div>

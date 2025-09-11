@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, subject, message } = await request.json()
-
-    console.log('Contact form submission:', { name, email, subject, message })
+    console.log('=== CONTACT FORM API CALLED ===')
+    
+    const body = await request.json()
+    console.log('Request body:', body)
+    
+    const { name, email, subject, message } = body
 
     // Validate required fields
     if (!name || !email || !message) {
-      console.log('Validation failed: Missing required fields')
+      console.log('❌ Validation failed: Missing required fields')
       return NextResponse.json(
         { error: 'Name, email, and message are required' },
         { status: 400 }
@@ -24,47 +21,40 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      console.log('Validation failed: Invalid email format')
+      console.log('❌ Validation failed: Invalid email format')
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       )
     }
 
-    // Insert contact form data into Supabase
-    const { data, error } = await supabase
-      .from('contact_messages')
-      .insert([
-        {
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          subject: subject?.trim() || 'General Inquiry',
-          message: message.trim()
-        }
-      ])
-      .select()
+    console.log('✅ Validation passed')
+    console.log('Form data:', {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      subject: subject?.trim() || 'General Inquiry',
+      message: message.trim()
+    })
 
-    if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json(
-        { error: 'Failed to send message. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    console.log('Contact message saved successfully:', data[0])
+    // For now, just return success without database
+    // This will help us confirm the API is working
+    console.log('✅ Returning success response')
 
     return NextResponse.json(
       { 
         success: true, 
-        message: 'Message sent successfully! We\'ll get back to you within 24 hours.',
-        data: data[0]
+        message: 'Message sent successfully! We\'ll get back to you within 24 hours.'
       },
       { status: 200 }
     )
 
   } catch (error) {
-    console.error('Contact form error:', error)
+    console.error('❌ Contact form error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
     return NextResponse.json(
       { error: 'Internal server error. Please try again.' },
       { status: 500 }

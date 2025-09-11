@@ -1,4 +1,4 @@
-# Dependencies
+echo "# Dependencies
 node_modules/
 /.pnp
 .pnp.js
@@ -34,4 +34,5 @@ yarn-error.log*
 .idea/
 
 # OS
-Thumbs.db
+Thumbs.db" > .gitignore
+.vercel

@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: 'Mentark - Your Personal AI Mentor',
   description: 'Turn uncertainty into clarity with your lifelong AI mentor. Personalized roadmaps, tasks, and guidance for students and professionals.',
   keywords: 'AI mentor, personal development, goal setting, productivity, career guidance, study planning',
+  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({
